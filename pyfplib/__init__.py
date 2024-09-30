@@ -1,10 +1,10 @@
 """Functional programming library"""
 
 from typing import Callable, Iterable, Sequence, TypeVar
-from pyfplib.result import Err, Ok, Result
-from pyfplib.option import from_optional, Nothing, Option, Some
-from pyfplib.either import from_result, Either, Left, Right
 
+from pyfplib.either import Either, Left, Right, from_result
+from pyfplib.option import Nothing, Option, Some, from_optional
+from pyfplib.result import Err, Ok, Result, try_call
 
 T = TypeVar("T")
 
@@ -64,8 +64,20 @@ def last(sequence: Sequence[T]) -> Option[T]:
 
 
 __all__ = (
-    "Option", "Nothing", "Some", "from_optional",
-    "Result", "Ok", "Err",
-    "Either", "Left", "Right", "from_result",
-    "all_of", "one_of", "first", "last",
+    "Option",
+    "Nothing",
+    "Some",
+    "from_optional",
+    "Result",
+    "Ok",
+    "Err",
+    "try_call",
+    "Either",
+    "Left",
+    "Right",
+    "from_result",
+    "all_of",
+    "one_of",
+    "first",
+    "last",
 )

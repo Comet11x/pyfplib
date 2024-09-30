@@ -1,7 +1,8 @@
 """This module provides Option type
 and two constructors of Option: Some[T] and Nothing[T].
 """
-from typing import cast, TypeVar, Generic, Callable, Optional
+from typing import Callable, Generic, Optional, TypeVar, cast
+
 from pyfplib.errors import UnwrapError
 
 T = TypeVar("T")
@@ -29,15 +30,17 @@ class _Option(Generic[T]):
         """Returns True if the option is None[T]"""
         return self.__value is None
 
-    def if_some(self, fn: Callable[[T], None]) -> None:
-        """Calls fn function if the option is Some[T]."""
+    def if_some(self, fn: Callable[[T], None]) -> "Option[T]":
+        """Calls fn function if the option is Some[T]. It returns self."""
         if self.__value is not None:
             fn(self.__value)
+        return self
 
-    def if_none(self, fn: Callable[[], None]) -> None:
-        """Calls fn function if the option is Nothing[T]."""
+    def if_none(self, fn: Callable[[], None]) -> "Option[T]":
+        """Calls fn function if the option is Nothing[T]. It returns self."""
         if self.__value is None:
             fn()
+        return self
 
     def unwrap(self) -> T:
         """\
@@ -52,8 +55,8 @@ class _Option(Generic[T]):
         """Returns the value or a provided default."""
         return value if self.__value is None else self.__value
 
-    def map(self, fn: Callable[[T], U]) -> "Option":
-        """Maps an Option[T] to Option[U]"""
+    def map(self, fn: Callable[[T], U]) -> "Option[U]":
+        """Maps an Option[T] to Option[U]."""
         o: Option
         if self.is_some():
             o = Some[U](fn(cast(T, self.__value)))
@@ -61,8 +64,8 @@ class _Option(Generic[T]):
             o = Nothing[T]()
         return o
 
-    def map_from(self, fn: Callable[[T], "Option"]) -> "Option":
-        """Maps an Option[T] to Option[U]"""
+    def map_from(self, fn: Callable[[T], "Option[U]"]) -> "Option[U]":
+        """Maps an Option[T] to Option[U]."""
         o: Option
         if self.is_some():
             o = fn(cast(T, self.__value))
@@ -94,9 +97,9 @@ class Nothing(_Option[T]):
 Option = Some[T] | Nothing[T]
 
 
-def from_optional(value: Optional[T]) -> Option:
+def from_optional(value: Optional[T]) -> Option[T]:
     """Creates Option[T] from Optional[T]."""
     return Nothing[T]() if value is None else Some[T](cast(T, value))
 
 
-__all__ = (Some.__name__, Nothing.__name__)
+__all__ = ("Option", "Some", "Nothing")
