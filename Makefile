@@ -1,5 +1,5 @@
 SHELL = /bin/bash
-PYVERSION = 3.11
+PYVERSION = 3.14
 PWD = $(shell pwd)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PKG_NAME = pyfplib
@@ -11,8 +11,8 @@ TEST_DIR = $(ROOT_DIR)/tests
 EXCLUDED_TEST_DIRS = $(TEST_DIR)/excluded
 COVERAGE_REPORT_HTML = coverage_html
 VENV_FILE = .venv
-VENV_SUFIX = _venv
-VENV_DEFAULT_NAME = $(PKG_NAME)$(VENV_SUFIX)
+VENV_SUFFIX = _venv
+VENV_DEFAULT_NAME = $(PKG_NAME)$(VENV_SUFFIX)
 VENV_NAME := $(shell test -s $(VENV_FILE) && cat $(VENV_FILE) || echo $(VENV_DEFAULT_NAME))
 VENV_DIR = $(ROOT_DIR)/$(VENV_NAME)
 VENV_ACTIVATE = $(VENV_DIR)/bin/activate 
