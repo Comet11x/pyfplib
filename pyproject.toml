@@ -7,23 +7,32 @@ name = "pyfplib"
 dynamic = ["version"]
 description = "A functional programming library for Python"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = "MIT"
-keywords = []
-authors = [
-  { name = "comet11x", email = "comet11x@protonmail.com" },
+keywords = [
+  "algorithm",
+  "fp",
+  "functional-programming",
+  "function-library",
+  "monad",
+  "result",
+  "result-monad",
+  "option",
+  "option-monad",
 ]
+authors = [{ name = "comet11x", email = "comet11x@protonmail.com" }]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
-  "Programming Language :: Python :: 3.7",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
+
 dependencies = []
 
 [project.urls]
@@ -35,47 +44,24 @@ Source = "https://github.com/Comet11x/pyfplib"
 path = "pyfplib/__about__.py"
 
 [tool.hatch.envs.default]
-dependencies = [
-  "coverage[toml]>=6.5",
-  "pytest",
-]
+dependencies = ["coverage[toml]>=6.5", "pytest"]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
 test-cov = "coverage run -m pytest {args:tests}"
-cov-report = [
-  "- coverage combine",
-  "coverage report",
-]
-cov = [
-  "test-cov",
-  "cov-report",
-]
+cov-report = ["- coverage combine", "coverage report"]
+cov = ["test-cov", "cov-report"]
 
 [[tool.hatch.envs.all.matrix]]
 python = ["3.11", "3.12"]
 
 [tool.hatch.envs.lint]
 detached = true
-dependencies = [
-  "black>=24.8.0",
-  "mypy>=1.0.0",
-  "ruff>=0.6.8",
-]
+dependencies = ["black>=24.8.0", "mypy>=1.0.0", "ruff>=0.6.8"]
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:pyfplib tests}"
-style = [
-  "ruff {args:.}",
-  "black --check --diff {args:.}",
-]
-fmt = [
-  "black {args:.}",
-  "ruff --fix {args:.}",
-  "style",
-]
-all = [
-  "style",
-  "typing",
-]
+style = ["ruff {args:.}", "black --check --diff {args:.}"]
+fmt = ["black {args:.}", "ruff --fix {args:.}", "style"]
+all = ["style", "typing"]
 
 [tool.black]
 target-version = ["py37"]
@@ -83,7 +69,7 @@ line-length = 120
 skip-string-normalization = true
 
 [tool.ruff]
-target-version = "py37"
+target-version = "py38"  # Or higher, like "py311"; supports "py37" through "py313"
 line-length = 120
 select = [
   "A",
@@ -118,9 +104,15 @@ ignore = [
   # Allow boolean positional values in function calls, like `dict.get(... True)`
   "FBT003",
   # Ignore checks for possible passwords
-  "S105", "S106", "S107",
+  "S105",
+  "S106",
+  "S107",
   # Ignore complexity
-  "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  "C901",
+  "PLR0911",
+  "PLR0912",
+  "PLR0913",
+  "PLR0915",
 ]
 unfixable = [
   # Don't touch unused imports
@@ -141,20 +133,14 @@ ban-relative-imports = "all"
 source_pkgs = ["pyfplib", "tests"]
 branch = true
 parallel = true
-omit = [
-  "pyfplib/__about__.py",
-]
+omit = ["pyfplib/__about__.py"]
 
 [tool.coverage.paths]
 pyfplib = ["pyfplib", "*/pyfplib/pyfplib"]
 tests = ["tests", "*/pyfplib/tests"]
 
 [tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["pyfplib"]
