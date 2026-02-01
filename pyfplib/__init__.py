@@ -1,10 +1,12 @@
-"""Functional programming library"""
+# SPDX-FileCopyrightText: 2026-present Comet11x
+# SPDX-License-Identifier: MIT
 
-from typing import Callable, Iterable, Sequence, TypeVar
+from collections.abc import Callable, Iterable, Sequence
+from typing import TypeVar
 
-from pyfplib.either import Either, Left, Right, from_result
-from pyfplib.option import Nothing, Option, Some, from_optional
-from pyfplib.result import Err, Ok, Result, try_call
+from pyfplib.either import Either, Left, Right
+from pyfplib.option import Nothing, Option, Some
+from pyfplib.result import Err, Ok, Result
 
 T = TypeVar("T")
 
@@ -64,20 +66,20 @@ def last(sequence: Sequence[T]) -> Option[T]:
 
 
 __all__ = (
-    "Option",
-    "Nothing",
-    "Some",
-    "from_optional",
-    "Result",
-    "Ok",
-    "Err",
-    "try_call",
     "Either",
+    "Err",
     "Left",
+    "Nothing",
+    "Ok",
+    "Option",
+    "Result",
     "Right",
-    "from_result",
+    "Some",
     "all_of",
-    "one_of",
     "first",
+    "from_optional",
+    "from_result",
     "last",
+    "one_of",
+    "try_call",
 )
