@@ -1,7 +1,7 @@
 """"""
 import pytest
 
-from pyfplib import Nothing, Option, Some, from_optional
+from pyfplib import Nothing, Option, Some
 
 
 @pytest.mark.parametrize(
@@ -14,7 +14,7 @@ from pyfplib import Nothing, Option, Some, from_optional
 def test_from_optional(args):
     """Test from_optional function"""
     value, ex = args
-    o = from_optional(value)
+    o = Option.from_optional(value)
     assert o == ex
 
 
@@ -24,6 +24,7 @@ def fn() -> Option:
 def test_some_must_be_ok():
     match fn():
         case Some("Hello"):
-            print("Ok")
+            assert True
         case Nothing():
             pytest.fail()
+
