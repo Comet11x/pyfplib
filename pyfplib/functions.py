@@ -33,6 +33,15 @@ def all_of(callback: Callable[[Any], bool], iterable: Iterable[Any]) -> bool:
     return ret_value
 
 
+def none_of(callback: Callable[[Any], bool], iterable: Iterable[Any]) -> bool:
+    ret_value = True
+    for item in iterable:
+        ret_value = not callback(item)
+        if not ret_value:
+            break
+    return ret_value
+
+
 def fold(
     callback: Callable[[Any, Any], Any],
     iterable: Iterable[Any],
