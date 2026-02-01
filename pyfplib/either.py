@@ -1,9 +1,10 @@
 """This module provides Either type and
 two constructors of Either: Left[L, R] and Right[L, R].
 """
-from typing import Callable, Generic, Optional, TypeVar, cast
+from collections.abc import Callable
+from typing import Generic, Optional, TypeVar, cast
 
-from pyfplib.option import Option, from_optional
+from pyfplib.option import Option
 from pyfplib.result import Result, T
 
 L = TypeVar("L")
@@ -46,11 +47,11 @@ class _Either(Generic[L, R]):
 
     def left(self) -> Option[L]:
         """Returns left value as Option[L]."""
-        return from_optional(self.__left)
+        return Option.from_optional(self.__left)
 
     def right(self) -> Option[R]:
         """Returns right value as Option[R]."""
-        return from_optional(self.__right)
+        return Option.from_optional(self.__right)
 
     def map_left(self, fn: Callable[[L], U]) -> "Either[U, R]":
         """Maps an Either[L, R] to Either[U, R]."""
