@@ -1,5 +1,4 @@
-from collections.abc import Callable, Iterable, Sequence
-from typing import Any, Union
+from typing import Any, Callable, Iterable, Sequence, Union
 
 from pyfplib.option import Nothing, Option, Some
 

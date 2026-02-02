@@ -1,12 +1,11 @@
-"""
-"""
+""" """
+
 __author__ = "Comet11x <>"
 __copyright__ = "Copyright 2026, Comet11x"
 __license__ = "MIT"
 __version__ = "0.1.0"
 
-from collections.abc import Callable
-from typing import Generic, Optional, TypeVar, Union, cast
+from typing import Callable, Generic, Optional, TypeVar, Union, cast
 
 from pyfplib.errors import ExpectedError, UnwrapError
 from pyfplib.option import Nothing, Option, Some
@@ -85,7 +84,7 @@ class Result(Generic[T, E]):
         Raises:
             UnwrapError: When attempting to unwrap Err
         """
-        if self.is_ok():
+        if self.is_err():
             msg = "called `Result.unwrap()` on a `Err` value"
             raise UnwrapError(msg)
         return self.__value
@@ -97,7 +96,7 @@ class Result(Generic[T, E]):
         Raises:
             UnwrapError: When attempting to unwrap Ok
         """
-        if self.is_err():
+        if self.is_ok():
             msg = "called `Result.unwrap_err()` on a `Ok` value"
             raise UnwrapError(msg)
         return self.__value
@@ -148,6 +147,7 @@ class Result(Generic[T, E]):
             return Ok[R, E](ret)
         except Exception as err:
             return Err[R, E](err)
+
 
 class Ok(Result[T, E]):
     """Result constructor."""

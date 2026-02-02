@@ -1,8 +1,8 @@
 """This module provides Either type and
 two constructors of Either: Left[L, R] and Right[L, R].
 """
-from collections.abc import Callable
-from typing import Generic, Optional, TypeVar, cast
+
+from typing import Callable, Generic, Optional, TypeVar, Union, cast
 
 from pyfplib.option import Option
 from pyfplib.result import Result, T
@@ -12,8 +12,8 @@ R = TypeVar("R")
 U = TypeVar("U")
 
 
-class _Either(Generic[L, R]):
-    """_Either is a basic class."""
+class Either(Generic[L, R]):
+    """Either is a basic class."""
 
     def __init__(self, *, left: Optional[L] = None, right: Optional[R] = None):
         self.__left: Optional[L] = left
@@ -71,8 +71,18 @@ class _Either(Generic[L, R]):
             either = Left[L, U](cast(L, self.__left))
         return either
 
+    @staticmethod
+    def from_result(result: Result) -> "Either[T, Exception]":
+        """Creates Either[T, Exception] from Result."""
+        either: Either
+        if result.is_ok():
+            either = Left[T, Exception](cast(T, result.ok().unwrap()))
+        else:
+            either = Right[T, Exception](cast(Exception, result.err().unwrap()))
+        return either
 
-class Left(_Either[L, R]):
+
+class Left(Either[L, R]):
     """\
     This Either constructor creates a new instance of Either
     with a left value.
@@ -82,12 +92,12 @@ class Left(_Either[L, R]):
         super().__init__(left=value)
 
     @property
-    def value(self) -> L | R:
+    def value(self) -> Union[L, R]:
         """Getter returns left or right value."""
         return cast(L, self.left())
 
 
-class Right(_Either[L, R]):
+class Right(Either[L, R]):
     """\
     This Either constructor creates a new instance of Either
     with a right value.
@@ -97,22 +107,9 @@ class Right(_Either[L, R]):
         super().__init__(right=value)
 
     @property
-    def value(self) -> L | R:
+    def value(self) -> Union[L, R]:
         """Getter returns left or right value."""
         return cast(R, self.right())
-
-
-Either = Left[L, R] | Right[L, R]
-
-
-def from_result(result: Result) -> Either[T, Exception]:
-    """Creates Either[T, Exception] from Result."""
-    either: Either
-    if result.is_ok():
-        either = Left[T, Exception](cast(T, result.ok().unwrap()))
-    else:
-        either = Right[T, Exception](cast(Exception, result.err().unwrap()))
-    return either
 
 
 __all__ = ("Either", "Left", "Right")
