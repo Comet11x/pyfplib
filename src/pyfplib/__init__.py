@@ -2,13 +2,15 @@
 # SPDX-License-Identifier: MIT
 
 from pyfplib.either import Either, Left, Right
-from pyfplib.functions import all_of, any_of, fold, for_each, head, is_empty, is_not_empty, last, none_of, tail
+from pyfplib.functools import all_of, any_of, find, fold, for_each, head, is_empty, is_not_empty, last, none_of, tail
+from pyfplib.iterator import Iter
 from pyfplib.option import Nothing, Option, Some
 from pyfplib.result import Err, Ok, Result
 
 __all__ = (  # noqa: PLE0604
     Either.__name__,
     Err.__name__,
+    Iter.__name__,
     Left.__name__,
     Nothing.__name__,
     Ok.__name__,
@@ -19,6 +21,7 @@ __all__ = (  # noqa: PLE0604
     all_of.__name__,
     any_of.__name__,
     none_of.__name__,
+    find.__name__,
     fold.__name__,
     for_each.__name__,
     head.__name__,
