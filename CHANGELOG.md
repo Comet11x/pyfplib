@@ -34,7 +34,7 @@ Types of changes
 
 - v0.3 Documentation
 
-## [0.2.0] - 2026-02-XX (0.2.0-alpha.1)
+## [0.2.0] - 2026-02-13
 
 ### Added
 
