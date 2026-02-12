@@ -1,6 +1,6 @@
 """ """
 
-__author__ = "Comet11x <>"
+__author__ = "Comet11x <comet11x@protonmail.com>"
 __copyright__ = "Copyright 2026, Comet11x"
 __license__ = "MIT"
 __version__ = "0.1.0"
@@ -18,6 +18,10 @@ U = TypeVar("U")
 
 class Result(Generic[T, E]):
     __match_args__ = ("value",)
+
+    Self = "Result"
+
+    __Fn = type(lambda _: _)
 
     def __init__(self, *, value: Optional[T] = None, error: Optional[E] = None):
         if error is None:
@@ -55,20 +59,6 @@ class Result(Generic[T, E]):
         if self.is_err():
             fn(self.__value)
         return self
-
-    def if_ok(self, fn: Callable[[T], None]) -> "Result[T, E]":
-        """\
-        Calls fn function and returns itself.
-        The fn function will be called if this option is Ok[T, E].
-        """
-        return self.inspect(fn)
-
-    def if_err(self, fn: Callable[[E], None]) -> "Result[T, E]":
-        """\
-        Calls fn function and returns itself.
-        The fn function will be called if this option is Err[E].
-        """
-        return self.inspect_err(fn)
 
     def ok(self) -> Option[T]:
         """\
@@ -120,13 +110,16 @@ class Result(Generic[T, E]):
             raise ExpectedError(message)
         return self.__value
 
-    def unwrap_or(self, value: T) -> T:
-        """Returns a contained value or provided default if Err."""
-        return self.__value if self.is_ok() is None else value
+    def unwrap_or(self, default: T) -> T:
+        """Returns a contained value or provided default if the result is Err[T, E]."""
+        return self.__value if self.is_ok() is None else default
 
-    def unwrap_err_or(self, value: E) -> E:
-        """Returns a contained value or provided default if Ok."""
-        return self.__value if self.is_err() is None else value
+    def unwrap_or_else(self, fn: Callable[[E], T]) -> T:
+        return self.__value if self.is_ok() else fn(self.__value)
+
+    def unwrap_err_or(self, default: E) -> E:
+        """Returns a contained value or provided default if the result is Ok[T, E]."""
+        return self.__value if self.is_err() is None else default
 
     def map(self, fn: Callable[[T], U]) -> "Result[U, E]":
         """Maps a Result[T, E] to Result[U, E]"""
@@ -137,7 +130,7 @@ class Result(Generic[T, E]):
         return fn(self.__value) if self.is_ok() else fn(default)
 
     def map_or_else(self, default: Callable[[E], T], fn: Callable[[T], U]) -> U:
-        """\
+        """
         Maps Result[T, E] to U by applying the given function fn to a contained Ok value.
         If the result is None, it applies the given fallback function default to a contained Err value.
         """
@@ -146,14 +139,29 @@ class Result(Generic[T, E]):
     def map_err(self, fn: Callable[[E], U]) -> "Result[T, U]":
         return Err(fn(self.__value)) if self.is_err() else self
 
+    def flatten(self) -> Self:
+        return self.__value.flatten() if isinstance(self.__value, Result) else self
+
+    def __and__(self, other: Union[Self, Callable[[T], Self]]) -> Self:
+        if self.is_err():
+            return self
+        else:
+            return other(self.__value) if isinstance(other, Result.__Fn) else other
+
+    def __or__(self, other: Union[Self, Callable[[T], Self]]) -> Self:
+        if self.is_ok():
+            return self
+        else:
+            return other(self.__value) if isinstance(other, Result.__Fn) else other
+
     @staticmethod
     def try_call(fn: Callable[..., R], *args, **kwargs) -> "Result[R, E]":
-        """Tries to call fn function and returns a result of the execution."""
+        """Tries to call the given function fn and returns an execution result."""
         try:
             ret: R = fn(*args, **kwargs)
-            return Ok[R, E](ret)
+            return Ok(ret)
         except Exception as err:
-            return Err[R, E](err)
+            return Err(err)
 
 
 class Ok(Result[T, E]):
