@@ -5,7 +5,7 @@ __copyright__ = "Copyright 2026, Comet11x"
 __license__ = "MIT"
 __version__ = "0.1.0"
 
-from typing import Callable, Generic, Optional, TypeVar, Union, cast
+from typing import Callable, Generic, Optional, TypeVar, Union
 
 from pyfplib.errors import ExpectedError, UnwrapError
 from pyfplib.option import Nothing, Option, Some
@@ -40,7 +40,7 @@ class Result(Generic[T, E]):
         """Returns True if the option is Err[T]."""
         return not self.__is_ok
 
-    def if_ok(self, fn: Callable[[T], None]) -> "Result[T, E]":
+    def inspect(self, fn: Callable[[T], None]) -> "Result[T, E]":
         """\
         Calls fn function and returns itself.
         The fn function will be called if this option is Ok[T].
@@ -49,7 +49,7 @@ class Result(Generic[T, E]):
             fn(self.__value)
         return self
 
-    def if_err(self, fn: Callable[[E], None]) -> "Result[T, E]":
+    def inspect_err(self, fn: Callable[[E], None]) -> "Result[T, E]":
         """\
         Calls fn function and returns itself.
         The fn function will be called if this option is Err[E].
@@ -57,6 +57,20 @@ class Result(Generic[T, E]):
         if self.is_err():
             fn(self.__value)
         return self
+
+    def if_ok(self, fn: Callable[[T], None]) -> "Result[T, E]":
+        """\
+        Calls fn function and returns itself.
+        The fn function will be called if this option is Ok[T].
+        """
+        return self.inspect(fn)
+
+    def if_err(self, fn: Callable[[E], None]) -> "Result[T, E]":
+        """\
+        Calls fn function and returns itself.
+        The fn function will be called if this option is Err[E].
+        """
+        return self.inspect_err(fn)
 
     def ok(self) -> Option[T]:
         """\
@@ -70,12 +84,7 @@ class Result(Generic[T, E]):
         Returns Some[Exception] if this option is Err[E],
         otherwise it returns Nothing[Exception].
         """
-        option: Option[Exception]
-        if self.is_err():
-            option = Some[Exception](cast(Exception, self.__value))
-        else:
-            option = Nothing[Exception]()
-        return option
+        return Some(self.__value) if self.is_err() else Nothing()
 
     def unwrap(self) -> T:
         """
@@ -123,21 +132,14 @@ class Result(Generic[T, E]):
 
     def map(self, fn: Callable[[T], U]) -> "Result[U, E]":
         """Maps an Result[T, E] to Result[U, E]"""
-        result: Result[U, E]
-        if self.is_ok():
-            result = Ok[U, E](fn(cast(T, self.__value)))
-        else:
-            result = Err[U, E](cast(E, self.__value))
-        return result
+        return Ok(fn(self.__value)) if self.is_ok() else Err(self.__value)
+
+    def map_err(self, fn: Callable[[E], U]) -> "Result[T, U]":
+        return Err(fn(self.__value)) if self.is_err() else self
 
     def map_or(self, default: T, fn: Callable[[T], U]) -> "Result[U]":
         """Maps an Result[T] to Result[U]"""
-        result: Result[U]
-        if self.is_ok():
-            result = fn(self.__value)
-        else:
-            result = fn(default)
-        return result
+        return fn(self.__value) if self.is_ok() else fn(default)
 
     @staticmethod
     def try_call(fn: Callable[..., R], *args, **kwargs) -> "Result[R, E]":
