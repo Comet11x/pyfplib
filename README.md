@@ -5,8 +5,6 @@ It can serve as a basis for monadic computations in your Python code.
 
 ## 📦 Installation
 
-
-
 ```shell
 pip install -U pyfplib
 ```
