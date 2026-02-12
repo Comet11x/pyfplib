@@ -143,16 +143,16 @@ class Result(Generic[T, E]):
         return self.__value.flatten() if isinstance(self.__value, Result) else self
 
     def __and__(self, other: Union[Self, Callable[[T], Self]]) -> Self:
-        if self.is_err():
-            return self
-        else:
-            return other(self.__value) if isinstance(other, Result.__Fn) else other
+        return other if self.is_ok() else self
+
+    def and_then(self, fn: Callable[[T], Self]) -> Self:
+        return fn(self.__value) if self.is_ok() and isinstance(fn, Result.__Fn) else self
 
     def __or__(self, other: Union[Self, Callable[[T], Self]]) -> Self:
-        if self.is_ok():
-            return self
-        else:
-            return other(self.__value) if isinstance(other, Result.__Fn) else other
+        return other if self.is_err() else self
+
+    def or_else(self, fn: Callable[[E], Self]) -> Self:
+        return fn(self.__value) if self.is_err() and isinstance(fn, Result.__Fn) else self
 
     @staticmethod
     def try_call(fn: Callable[..., R], *args, **kwargs) -> "Result[R, E]":
@@ -164,14 +164,14 @@ class Result(Generic[T, E]):
             return Err(err)
 
 
-class Ok(Result[T, E]):
+class Ok(Result):
     """Result constructor."""
 
     def __init__(self, value: T):
         super().__init__(value=value)
 
 
-class Err(Result[T, E]):
+class Err(Result):
     """Result constructor."""
 
     def __init__(self, error: E):
