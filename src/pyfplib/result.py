@@ -112,14 +112,14 @@ class Result(Generic[T, E]):
 
     def unwrap_or(self, default: T) -> T:
         """Returns a contained value or provided default if the result is Err[T, E]."""
-        return self.__value if self.is_ok() is None else default
+        return self.__value if self.is_ok() else default
 
     def unwrap_or_else(self, fn: Callable[[E], T]) -> T:
         return self.__value if self.is_ok() else fn(self.__value)
 
     def unwrap_err_or(self, default: E) -> E:
         """Returns a contained value or provided default if the result is Ok[T, E]."""
-        return self.__value if self.is_err() is None else default
+        return self.__value if self.is_err() else default
 
     def map(self, fn: Callable[[T], U]) -> "Result[U, E]":
         """Maps a Result[T, E] to Result[U, E]"""
