@@ -1,14 +1,18 @@
 import pytest
 
-from pyfplib import Err, Ok, Result, first, try_call
+from pyfplib import Ok, Result
 
 
 def create_result() -> Result:
     return Ok("TEST")
 
+
 def test_result():
-    match create_result():
-        case Ok("TEST"):
-            print("OK")
-        case Err(Exception("TEST")):
-            pytest.fail()
+    result = create_result()
+    assert result.is_ok()
+    # value = "TEST"
+    # match result:
+    #    case Ok(value):
+    #       assert result.unwrap() == value
+    #    case Err(Exception("TEST")):
+    #        pytest.fail()

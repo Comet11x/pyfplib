@@ -1,33 +1,34 @@
 SHELL = /bin/bash
-PYVERSION = 3.11
+PYVERSION = 3.14
 PWD = $(shell pwd)
 ROOT_DIR = $(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 PKG_NAME = pyfplib
 BIN_DIR = $(ROOT_DIR)/bin
-SRC_DIR = $(ROOT_DIR)/$(PKG_NAME)
+SRC_DIR = $(ROOT_DIR)/src/$(PKG_NAME)
+PKG_DIR = $(SRC_DIR)
 MAIN_FILE = pyfplib.py
 ENTRY_POINT = $(SRC_DIR)/$(MAIN_FILE)
 TEST_DIR = $(ROOT_DIR)/tests
 EXCLUDED_TEST_DIRS = $(TEST_DIR)/excluded
 COVERAGE_REPORT_HTML = coverage_html
 VENV_FILE = .venv
-VENV_SUFIX = _venv
-VENV_DEFAULT_NAME = $(PKG_NAME)$(VENV_SUFIX)
+VENV_SUFFIX = _venv
+VENV_DEFAULT_NAME = $(PKG_NAME)$(VENV_SUFFIX)
 VENV_NAME := $(shell test -s $(VENV_FILE) && cat $(VENV_FILE) || echo $(VENV_DEFAULT_NAME))
 VENV_DIR = $(ROOT_DIR)/$(VENV_NAME)
 VENV_ACTIVATE = $(VENV_DIR)/bin/activate 
-DEV_REQUIREMENT = $(ROOT_DIR)/dev-requirements.txt
+DEV_REQUIREMENT = $(ROOT_DIR)/requirements/dev.txt
 PROD_REQUIREMENT = $(ROOT_DIR)/requirements.txt
 EXCLUDED_DIRS = 
 
 run_flake8:
-	source $(VENV_ACTIVATE) && PYTHONPATH=$(ROOT_DIR) flake8 --exclude=$(EXCLUDED_DIRS) tests $(PKG_NAME)
+	source $(VENV_ACTIVATE) && PYTHONPATH=$(ROOT_DIR) flake8 --exclude=$(EXCLUDED_DIRS) tests $(PKG_DIR)
 
 run_pylint:
-	source $(VENV_ACTIVATE) && PYTHONPATH=$(ROOT_DIR) pylint --output-format=colorized  $(PKG_NAME)
+	source $(VENV_ACTIVATE) && PYTHONPATH=$(ROOT_DIR) pylint --output-format=colorized  $(PKG_DIR)
 
 run_black:
-	source $(VENV_ACTIVATE) && PYTHONPATH=$(ROOT_DIR) black --check $(TEST_DIR) $(PKG_NAME)
+	source $(VENV_ACTIVATE) && PYTHONPATH=$(ROOT_DIR) black --check $(TEST_DIR) $(PKG_DIR)
 
 run_lint: run_flake8 run_black run_pylint
 

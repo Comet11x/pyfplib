@@ -1,4 +1,5 @@
 hatch
+pdoc3
 pytest
 pytest-sphinx
 pytest-cov
@@ -13,6 +14,7 @@ twine
 wheel
 coverage
 black
+flake8
 flask
 mypy
 ruff
