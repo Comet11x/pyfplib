@@ -34,7 +34,13 @@ Types of changes
 
 - v0.3 Documentation
 
-## [0.2.0] - 2026-02-13
+## [0.2.2] - 2026-02-13
+
+### Fixed
+
+- [Result methods](https://github.com/Comet11x/pyfplib/issues/1)
+
+## [0.2.0/0.2.1] - 2026-02-13
 
 ### Added
 
