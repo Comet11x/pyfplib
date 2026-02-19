@@ -73,7 +73,6 @@ def is_not_empty(iterable: Iterable[Any]) -> bool:
 
 
 def find(callback: Callable[[Any], Option[Any]], iterable: Iterable[Any]) -> Option[Any]:
-    ret_value = Nothing()
     for item in iterable:
         ret_value = callback(item)
         if isinstance(ret_value, Option) and ret_value.is_some():
@@ -81,4 +80,4 @@ def find(callback: Callable[[Any], Option[Any]], iterable: Iterable[Any]) -> Opt
         elif ret_value:
             return Some(item)
 
-    return ret_value
+    return Nothing()
