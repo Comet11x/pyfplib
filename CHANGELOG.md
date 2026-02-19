@@ -34,6 +34,12 @@ Types of changes
 
 - v0.3 Documentation
 
+## [0.2.3] - 2026-02-20
+
+### Fixed
+
+- `find` function from `functools`
+
 ## [0.2.2] - 2026-02-13
 
 ### Fixed
