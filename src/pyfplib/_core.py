@@ -44,6 +44,15 @@ class Result[T, E]:
         """Boolean conversion - True if Ok, False if Err."""
         return self.is_ok()
 
+    def __repr__(self) -> str:
+        """
+        Returns a readable representation of this result.
+
+        Returns:
+            str: ``Ok(value)`` or ``Err(error)``.
+        """
+        return f"Ok({self.__value!r})" if self.is_ok() else f"Err({self.__value!r})"
+
     def inspect(self, fn: Callable[[T], None]) -> "Result[T, E]":
         """\
         Applies the given function fn to a contained value if the result is Ok[T, E].
@@ -261,6 +270,15 @@ class Option[T]:
     def __bool__(self) -> bool:
         """Boolean conversion - True if Some[T], False if Nothing."""
         return self.is_some()
+
+    def __repr__(self) -> str:
+        """
+        Returns a readable representation of this option.
+
+        Returns:
+            str: ``Some(value)`` or ``Nothing()``.
+        """
+        return "Nothing()" if self.is_none() else f"Some({self.__value!r})"
 
     def inspect(self, fn: Callable[[T], None]) -> "Option[T]":
         """
