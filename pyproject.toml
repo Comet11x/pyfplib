@@ -16,6 +16,7 @@ keywords = [
   "result",
   "result-monad",
 ]
+authors = [{ name = "comet11x", email = "comet11x@protonmail.com" }]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
