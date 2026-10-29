@@ -32,7 +32,7 @@ Types of changes
 
 ## [Unreleased]
 
-## [0.3.0] - 2026-02-19
+## [0.3.0] - 2026-10-30
 
 ### Added
 
