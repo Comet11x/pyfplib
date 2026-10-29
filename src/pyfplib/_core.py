@@ -1,38 +1,34 @@
-""""""
+# SPDX-FileCopyrightText: 2026-present Comet11x
+# SPDX-License-Identifier: MIT
+"""This module provides Option[T] and Result[T, E]"""
 
-__author__ = "Comet11x <comet11x@protonmail.com>"
-__copyright__ = "Copyright 2026, Comet11x"
-__license__ = "MIT"
-__version__ = "0.3.0"
-
-from collections.abc import Iterable
-from typing import Any, Callable, Generic, Optional, Tuple, TypeVar, Union
+from collections.abc import Callable
+from typing import TypeVar, cast, overload
 
 from pyfplib.errors import ExpectedError, UnwrapError
 
-T = TypeVar("T")
-E = TypeVar("E")
-R = TypeVar("R")
-U = TypeVar("U")
+Ts = TypeVar("Ts")
 
 
-class Result(Generic[T, E]):
+class Result[T, E]:
+    """
+    Result<T, E> monad for Python.
+
+    Represents a value that is either Some(T) containing data,
+    or Nothing() representing absence of value.
+
+    Provides safe null-handling through method chaining
+    instead of explicit None checks.
+    """
+
     __match_args__ = ("value",)
 
-    Self = "Result"
-
-    __Fn = type(lambda _: _)
-
-    def __init__(self, *, value: Optional[T] = None, error: Optional[E] = None):
-        if error is None:
-            self.__value = value
-            self.__is_ok = True
-        else:
-            self.__value = error
-            self.__is_ok = False
+    def __init__(self, *, value: T | None = None, error: E | None = None):
+        self.__is_ok = error is None
+        self.__value: T | E = cast(T, value) if self.__is_ok else cast(E, error)
 
     @property
-    def value(self) -> Union[T, E]:
+    def value(self) -> T | E:
         """Returns a contained value."""
         return self.__value
 
@@ -44,12 +40,16 @@ class Result(Generic[T, E]):
         """Returns True if the result is Err[T, E]."""
         return not self.__is_ok
 
+    def __bool__(self) -> bool:
+        """Boolean conversion - True if Ok, False if Err."""
+        return self.is_ok()
+
     def inspect(self, fn: Callable[[T], None]) -> "Result[T, E]":
         """\
         Applies the given function fn to a contained value if the result is Ok[T, E].
         """
         if self.is_ok():
-            fn(self.__value)
+            fn(cast(T, self.__value))
         return self
 
     def inspect_err(self, fn: Callable[[E], None]) -> "Result[T, E]":
@@ -57,7 +57,7 @@ class Result(Generic[T, E]):
         Applies the given function fn to a contained value if the result is Err[T, E].
         """
         if self.is_err():
-            fn(self.__value)
+            fn(cast(E, self.__value))
         return self
 
     def ok(self) -> "Option[T]":
@@ -65,14 +65,14 @@ class Result(Generic[T, E]):
         Returns Some[T] if this result is Ok[T, E],
         otherwise it returns Nothing[T].
         """
-        return Some(self.__value) if self.is_ok() else Nothing()
+        return Some(cast(T, self.__value)) if self.is_ok() else Nothing()
 
     def err(self) -> "Option[E]":
         """\
         Returns Some[Exception] if this result is Err[E],
         otherwise it returns Nothing[Exception].
         """
-        return Some(self.__value) if self.is_err() else Nothing()
+        return Some(cast(E, self.__value)) if self.is_err() else Nothing()
 
     def unwrap(self) -> T:
         """
@@ -84,7 +84,8 @@ class Result(Generic[T, E]):
         if self.is_err():
             msg = "called `Result.unwrap()` on a `Err` value"
             raise UnwrapError(msg)
-        return self.__value
+        value: T = cast(T, self.__value)
+        return value
 
     def unwrap_err(self) -> E:
         """
@@ -96,94 +97,134 @@ class Result(Generic[T, E]):
         if self.is_ok():
             msg = "called `Result.unwrap_err()` on a `Ok` value"
             raise UnwrapError(msg)
-        return self.__value
+        return cast(E, self.__value)
 
     def expect(self, message: str) -> T:
         """Returns a contained value or raises ExpectedError"""
         if self.is_err():
             raise ExpectedError(message)
-        return self.__value
+        return cast(T, self.__value)
 
     def expect_err(self, message: str) -> E:
         """Returns a contained value or raises ExpectedError"""
         if self.is_ok():
             raise ExpectedError(message)
-        return self.__value
+        return cast(E, self.__value)
 
     def unwrap_or(self, default: T) -> T:
         """Returns a contained value or provided default if the result is Err[T, E]."""
-        return self.__value if self.is_ok() else default
+        return cast(T, self.__value) if self.is_ok() else default
 
     def unwrap_or_else(self, fn: Callable[[E], T]) -> T:
-        return self.__value if self.is_ok() else fn(self.__value)
+        return cast(T, self.__value) if self.is_ok() else fn(cast(E, self.__value))
 
     def unwrap_err_or(self, default: E) -> E:
         """Returns a contained value or provided default if the result is Ok[T, E]."""
-        return self.__value if self.is_err() else default
+        return cast(E, self.__value) if self.is_err() else default
 
-    def map(self, fn: Callable[[T], U]) -> "Result[U, E]":
+    def map[U](self, fn: Callable[[T], U]) -> "Result[U, E]":
         """Maps a Result[T, E] to Result[U, E]"""
-        return Ok(fn(self.__value)) if self.is_ok() else Err(self.__value)
+        if self.is_ok():
+            return Ok(fn(self.unwrap()))
+        else:
+            return Err(self.unwrap_err())
 
-    def map_or(self, default: T, fn: Callable[[T], U]) -> "Result[U, E]":
-        """Maps a Result[T] to Result[U]"""
-        return fn(self.__value) if self.is_ok() else fn(default)
+    def map_or[U](self, default: T, fn: Callable[[T], U]) -> "Result[U, E]":
+        """Maps a Result[T, E] to Result[U, E]"""
+        value: T = cast(T, self.__value) if self.is_ok() else default
+        return cast(Result[U, E], Ok(fn(value)))
 
-    def map_or_else(self, default: Callable[[E], T], fn: Callable[[T], U]) -> U:
+    def map_or_else[U](self, default: Callable[[E], T], fn: Callable[[T], U]) -> U:
         """
         Maps Result[T, E] to U by applying the given function fn to a contained Ok value.
         If the result is None, it applies the given fallback function default to a contained Err value.
         """
-        return fn(self.__value) if self.is_ok() else fn(default(self.__value))
+        value: T = cast(T, self.__value) if self.is_ok() else default(self.unwrap_err())
+        return fn(value)
 
-    def map_err(self, fn: Callable[[E], U]) -> "Result[T, U]":
-        return Err(fn(self.__value)) if self.is_err() else self
+    def map_err[U](self, fn: Callable[[E], U]) -> "Result[T, U]":
+        if self.is_err():
+            res_err: Result[T, U] = Err(fn(cast(E, self.__value)))
+            return res_err
+        else:
+            res_ok: Result[T, U] = Ok(cast(T, self.__value))
+            return res_ok
 
-    def flatten(self) -> Self:
-        return self.__value.flatten() if isinstance(self.__value, Result) else self
+    @overload
+    def flatten(self: "Result[Result[T, E], E]") -> "Result[T, E]": ...
 
-    def flatten_all(self) -> Self:
+    @overload
+    def flatten(self: "Result[T, E]") -> "Result[T, E]": ...
+
+    def flatten(self):
         return self.__value if isinstance(self.__value, Result) else self
 
-    def __and__(self, other: Union[Self, Callable[[T], Self]]) -> Self:
-        return other if self.is_ok() else self
+    @overload
+    def flatten_all(self: "Result[Result[T, E], E]") -> "Result[T, E]": ...
 
-    def and_then(self, fn: Callable[[T], Self]) -> Self:
-        return fn(self.__value) if self.is_ok() and isinstance(fn, Result.__Fn) else self
+    @overload
+    def flatten_all(self: "Result[T, E]") -> "Result[T, E]": ...
 
-    def __or__(self, other: Union[Self, Callable[[T], Self]]) -> Self:
-        return other if self.is_err() else self
+    def flatten_all(self) -> "Result":
+        value: Result | object = self
+        while isinstance(value.__value, Result):
+            value: Result = value.__value
+        return value
 
-    def or_else(self, fn: Callable[[E], Self]) -> Self:
-        return fn(self.__value) if self.is_err() and isinstance(fn, Result.__Fn) else self
+    def __and__(self, other: "Result[T, E] | Callable[[T], Result[T, E]]") -> "Result[T, E]":
+        if self.is_err():
+            return self
+        else:
+            if isinstance(other, Callable):
+                fn = cast(Callable[[T], "Result[T, E]"], other)
+                return fn(cast(T, self.__value))
+            else:
+                return cast(Result[T, E], other)
+
+    def and_then(self, fn: Callable[[T], "Result[T, E]"]) -> "Result[T, E]":
+        return fn(cast(T, self.__value)) if self.is_ok() and callable(fn) else self
+
+    def __or__(self, other: "Result[T, E] | Callable[[E], Result[T, E]]") -> "Result[T, E]":
+        if self.is_ok():
+            res = self
+        else:
+            if isinstance(other, Callable):
+                fn = cast(Callable[[E], "Result[T, E]"], other)
+                res = fn(cast(E, self.__value))
+            else:
+                res = cast(Result[T, E], other)
+        return res
+
+    def or_else(self, fn: Callable[[E], "Result[T, E]"]) -> "Result[T, E]":
+        return fn(cast(E, self.__value)) if self.is_err() and callable(fn) else self
 
     @staticmethod
-    def try_call(fn: Callable[..., R], *args, **kwargs) -> "Result[R, E]":
-        """Tries to call the given function fn and returns an execution result."""
+    def try_call[R](fn: Callable[..., R], *args, **kwargs) -> "Result[R, Exception]":
+        """Tries to call the given function fn and returns a result of the execution."""
         try:
             ret: R = fn(*args, **kwargs)
             return Ok(ret)
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             return Err(err)
 
 
-class Ok(Result):
+class Ok[T, E](Result[T, E]):
     """Result constructor."""
 
     def __init__(self, value: T):
         super().__init__(value=value)
 
 
-class Err(Result):
+class Err[T, E](Result[T, E]):
     """Result constructor."""
 
     def __init__(self, error: E):
         super().__init__(error=error)
 
 
-class Option(Generic[T]):
+class Option[T]:
     """
-    Rust-inspired Option<T> monad for Python.
+    Option<T> monad for Python.
 
     Represents a value that is either Some(T) containing data,
     or Nothing() representing absence of value.
@@ -195,9 +236,7 @@ class Option(Generic[T]):
     # Support for structural pattern matching (Python 3.10+)
     __match_args__ = ("value",)
 
-    Self = "Option"
-
-    def __init__(self, value: Optional[T]):
+    def __init__(self, value: T | None):
         """
         Internal constructor - use Some(value) or Nothing() instead.
 
@@ -207,7 +246,7 @@ class Option(Generic[T]):
         self.__value = value
 
     @property
-    def value(self) -> Optional[T]:
+    def value(self) -> T | None:
         """Returns the raw contained value (use with caution - may be None)."""
         return self.__value
 
@@ -218,6 +257,10 @@ class Option(Generic[T]):
     def is_none(self) -> bool:
         """Returns True if this Option contains no value (Nothing)."""
         return self.__value is None
+
+    def __bool__(self) -> bool:
+        """Boolean conversion - True if Some[T], False if Nothing."""
+        return self.is_some()
 
     def inspect(self, fn: Callable[[T], None]) -> "Option[T]":
         """
@@ -274,23 +317,30 @@ class Option(Generic[T]):
         Returns contained value or a provided default value if it is Nothing.
 
         Args:
-            default:
+            default: a value returned if the option is
         """
-        return default if self.is_none() else self.__value
+        return default if self.is_none() else cast(T, self.__value)
 
     def unwrap_or_else(self, fn: Callable[[], T]) -> T:
         """Returns the contained Some value or computes it from a closure."""
-        return fn() if self.is_none() else self.__value
+        return fn() if self.is_none() else cast(T, self.__value)
 
-    def map_or(self, default: U, fn: Callable[[T], U]) -> "Option[U]":
+    def map[U](self, fn: Callable[[T], U]) -> "Option[U]":
+        if self.is_some():
+            return Some(fn(self.unwrap()))
+        else:
+            return Nothing()
+
+    def map_or[U](self, default: U, fn: Callable[[T], U]) -> "Option[U]":
         """
 
         Args:
             fn: a pure function mapping T to U
         """
-        return default if self.is_none() else fn(self.__value)
+        value = default if self.is_none() else fn(cast(T, self.__value))
+        return Some(value)
 
-    def map_or_else(self, default: Callable[[], U], fn: Callable[[T], U]) -> U:
+    def map_or_else[U](self, default: Callable[[], U], fn: Callable[[T], U]) -> U:
         """
         Maps contained value through a function returning Option[U].
         FlatMaps Option[T] -> Option[U], returns Nothing() if no value.
@@ -298,19 +348,42 @@ class Option(Generic[T]):
         Args:
             fn: the function returning Option[U]
         """
-        return default() if self.is_none() else fn(self.__value)
+        return default() if self.is_none() else fn(cast(T, self.__value))
 
-    def flatten(self) -> Self:
+    @overload
+    def flatten(self: "Option[Option[T]]") -> "Option[T]": ...
+
+    @overload
+    def flatten(self: "Option[T]") -> "Option[T]": ...
+
+    def flatten(self):
         return self.__value if isinstance(self.__value, Option) else self
 
-    def flatten_all(self) -> Self:
-        return self.__value.flatten_all() if isinstance(self.__value, Option) else self
+    @overload
+    def flatten_all(self: "Option[Option[T]]") -> "Option[T]": ...
 
-    def ok_or(self, err: Any) -> "Result":
-        Err(err) if self.is_none() else Ok(self.__value)
+    @overload
+    def flatten_all(self: "Option[T]") -> "Option[T]": ...
 
-    def ok_or_else(self, fn: Callable[[], Any]) -> Result[T, Any]:
-        Err(fn()) if self.is_none() else Ok(self.__value)
+    def flatten_all(self) -> "Option[T]":
+        value: Option[T] | object = self
+        while isinstance(value.__value, Option):
+            value = value.__value
+        return value
+
+    def ok_or[E](self, err: E) -> Result[T, E]:
+        if self.is_none():
+            res: Result[T, E] = Err(err)
+        else:
+            res: Result[T, E] = Ok(self.unwrap())
+        return res
+
+    def ok_or_else[E](self, fn: Callable[[], E]) -> Result[T, E]:
+        if self.is_none():
+            res: Result[T, E] = Err(fn())
+        else:
+            res: Result[T, E] = Ok(self.unwrap())
+        return res
 
     def __eq__(self, other: object) -> bool:
         """Equality comparison based on contained values."""
@@ -322,23 +395,28 @@ class Option(Generic[T]):
     def __hash__(self):
         return hash(self.__value)
 
-    def __bool__(self) -> bool:
-        """Boolean conversion - True if Some[T], False if Nothing."""
-        return self.is_some()
+    def __and__[U](self, other: "Option[U] | Callable[[], Option[U]]") -> "Option[U]":
+        if self.is_some():
+            return cast(Callable[[], Option[U]], other)() if isinstance(other, Callable) else cast(Option[U], other)
+        else:
+            return Nothing()
 
-    def __and__(self, other: Union[Self, Callable[[T], Self]]) -> Self:
-        return other if self.is_some() else self
+    def and_then[U](self, fn: Callable[[T], "Option[U]"]) -> "Option[U]":
+        if self.is_some() and callable(fn):
+            return fn(cast(T, self.__value))
+        else:
+            return Nothing()
 
-    def and_then(self, fn: Callable[[T], Self]) -> Self:
-        return fn(self.__value) if self.is_some() and isinstance(fn, Result.__Fn) else self
+    def __or__(self, other: "Option[T] | Callable[[], Option[T]]") -> "Option[T]":
+        if self.is_some():
+            return self
+        else:
+            return cast(Callable[[], Option[T]], other)() if isinstance(other, Callable) else other
 
-    def __or__(self, other: Union[Self, Callable[[T], Self]]) -> Self:
-        return other if self.is_none() else self
+    def or_else(self, fn: Callable[[], "Option[T]"]) -> "Option[T]":
+        return fn() if self.is_none() and callable(fn) else self
 
-    def or_else(self, fn: Callable[[], Self]) -> Self:
-        return fn() if self.is_none() and isinstance(fn, Result.__Fn) else self
-
-    def xor(self, other: Self) -> Self:
+    def xor(self, other: "Option[T]") -> "Option[T]":
         if self.is_some() and other.is_none():
             return self
         elif self.is_none() and other.is_some():
@@ -347,36 +425,29 @@ class Option(Generic[T]):
             return Nothing()
 
     def push(self, value: T) -> T:
-        ret = self.__value if self.is_some() else value
+        ret = cast(T, self.__value) if self.is_some() else value
         self.__value = value
         return ret
 
     @staticmethod
-    def from_optional(value: Optional[T] = None) -> "Option[T]":
+    def from_optional(value: T | None = None) -> "Option[T]":
         """Creates Option[T] from Optional[T]."""
         return Nothing() if value is None else Some(value)
 
-    def zip(self, other: Self) -> Self:
+    def zip[U](self, other: "Option[U]") -> "Option[tuple[T, U]]":
         if self.is_some() and other.is_some():
-            return Some((self.__value, other.__value))
+            return Some((cast(T, self.__value), cast(U, other.__value)))
         else:
             return Nothing()
 
-    def unzip(self) -> Tuple[Self, Self]:
-        if isinstance(self.__value, Iterable):
-            acc = []
-            for elem in self.__value:
-                acc.append(Some(elem))
-            return tuple(acc)
-
-    def zip_with(self, other: Self, ctr: Callable[[T, T], U]) -> Self:
+    def zip_with[U, R](self, other: "Option[U]", ctr: Callable[[T, U], R]) -> "Option[R]":
         if self.is_some() and other.is_some():
-            return Some(ctr(self.__value, other.__value))
+            return Some(ctr(cast(T, self.__value), cast(U, other.__value)))
         else:
             return Nothing()
 
 
-class Some(Option[T]):
+class Some[T](Option[T]):
     """
     Some extends Option[T].
     It is used to create Option[T] containing a value
@@ -390,7 +461,7 @@ class Some(Option[T]):
         super().__init__(value)
 
 
-class Nothing(Option[T]):
+class Nothing[T](Option[T]):
     """
     Nothing extends Option[T].
     It is used to create empty Option[T]
