@@ -35,6 +35,12 @@ Documentation = "https://github.com/Comet11x/pyfplib/blob/main/README.md"
 Issues = "https://github.com/Comet11x/pyfplib/issues"
 Source = "https://github.com/Comet11x/pyfplib"
 
+[project.optional-dependencies]
+test = [
+  "pytest>=8.0.0",
+  "pytest-cov>=6.0.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -55,7 +61,12 @@ pyfplib = ["src/pyfplib", "*/pyfplib/src/pyfplib"]
 tests = ["tests", "*/pyfplib/tests"]
 
 [tool.coverage.report]
-exclude_lines = ["no cov", "if __name__ == .__main__.:", "if TYPE_CHECKING:"]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+  "^\\s*(((async )?def .*?)?[\\])]+(\\s*->.*?)?:\\s*)?\\.\\.\\.\\s*(#|$)",
+]
 
 # [project.scripts]
 # run_pyfplib = "pyfplib:main"
@@ -65,6 +76,9 @@ packages = ["src/pyfplib"]
 
 [tool.hatch.version]
 path = "src/pyfplib/__about__.py"
+
+[tool.hatch.build.targets.sdist]
+exclude = ["/docs", "/examples", "/tests"]
 
 [tool.hatch.envs.test]
 dependencies = ["pytest"]
