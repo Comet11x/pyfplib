@@ -32,7 +32,13 @@ Types of changes
 
 ## [Unreleased]
 
-- v0.3 Documentation
+- v0.4 Documentation
+
+## [0.3.0] - 2026-02-19
+
+### Fixed
+
+- `find` function from `pyfplib.functools`
 
 ## [0.2.3] - 2026-02-20
 

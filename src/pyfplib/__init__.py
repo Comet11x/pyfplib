@@ -2,7 +2,20 @@
 # SPDX-License-Identifier: MIT
 
 from pyfplib.either import Either, Left, Right
-from pyfplib.functools import all_of, any_of, find, fold, for_each, head, is_empty, is_not_empty, last, none_of, tail
+from pyfplib.functools import (
+    all_of,
+    any_of,
+    find,
+    fold,
+    for_each,
+    head,
+    index,
+    is_empty,
+    is_not_empty,
+    last,
+    none_of,
+    tail,
+)
 from pyfplib.iterator import Iter
 from pyfplib.option import Nothing, Option, Some
 from pyfplib.result import Err, Ok, Result
@@ -29,4 +42,5 @@ __all__ = (  # noqa: PLE0604
     last.__name__,
     is_empty.__name__,
     is_not_empty.__name__,
+    index.__name__,
 )
