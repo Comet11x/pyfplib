@@ -360,6 +360,16 @@ class TestAndOperator:
         assert res.is_err()
         assert res.value == "e"
 
+    def test_and_err_with_result_returns_self(self):
+        res = Err("e") & Ok(42)
+        assert res.is_err()
+        assert res.value == "e"
+
+    def test_and_err_with_callable_returns_self(self):
+        res = Err("e") & (lambda v: Ok(v))
+        assert res.is_err()
+        assert res.value == "e"
+
     def test_and_ok_with_result(self):
         res = Ok(42) & Ok(84)
         assert res.is_ok()

@@ -1,6 +1,7 @@
 from pyfplib import Nothing, Some
 from pyfplib.functools import (
     _FnWrapper,
+    _FnWrapper3,
     all_of,
     any_of,
     find,
@@ -13,6 +14,8 @@ from pyfplib.functools import (
     is_not_empty,
     last,
     none_of,
+    split_first,
+    split_last,
     tail,
 )
 
@@ -131,6 +134,14 @@ class TestFold:
         result = fold(lambda acc, _: acc.unwrap_or(0), [1, 2, 3], 0)
         assert result.unwrap_or(-1) == 0
 
+    def test_fold_with_single_param_function_returns_initial(self):
+        result = fold(lambda _: 0, [1, 2, 3], 10)
+        assert result.unwrap_or(-1) == 10
+
+    def test_fold_with_four_param_function_returns_initial(self):
+        result = fold(lambda acc, x, i, c: 0, [1, 2, 3], 10)
+        assert result.unwrap_or(-1) == 10
+
     def test_fold_concat_strings(self):
         result = fold(lambda acc, x: acc.unwrap_or(0) + x, ["a", "b", "c"], "")
         assert result.unwrap_or("") == "abc"
@@ -159,6 +170,44 @@ class TestTail:
 
     def test_tail_string(self):
         assert tail("hello") == "ello"
+
+
+class TestSplitFirst:
+    def test_split_first_non_empty(self):
+        first_item, rest = split_first([1, 2, 3])
+        assert isinstance(first_item, Some)
+        assert first_item.value == 1
+        assert rest == [2, 3]
+
+    def test_split_first_single_element(self):
+        first_item, rest = split_first([1])
+        assert isinstance(first_item, Some)
+        assert first_item.value == 1
+        assert rest == []
+
+    def test_split_first_empty(self):
+        first_item, rest = split_first([])
+        assert isinstance(first_item, Nothing)
+        assert rest == []
+
+
+class TestSplitLast:
+    def test_split_last_non_empty(self):
+        rest, last_item = split_last([1, 2, 3])
+        assert rest == [1, 2]
+        assert isinstance(last_item, Some)
+        assert last_item.value == 3
+
+    def test_split_last_single_element(self):
+        rest, last_item = split_last([1])
+        assert rest == []
+        assert isinstance(last_item, Some)
+        assert last_item.value == 1
+
+    def test_split_last_empty(self):
+        rest, last_item = split_last([])
+        assert rest == []
+        assert isinstance(last_item, Nothing)
 
 
 class TestFirst:
@@ -269,7 +318,7 @@ class TestFind:
         assert isinstance(result, Nothing)
 
     def test_find_returns_some_for_truthy_non_option(self):
-        result = find(lambda x: Some(x) if x > 3 else Nothing(), [1, 2, 4, 5])
+        result = find(lambda x: x > 3, [1, 2, 4, 5])  # type: ignore[arg-type]
         assert isinstance(result, Some)
         assert result.value == 4
 
@@ -306,3 +355,25 @@ class TestFnWrapper:
         wrapper = _FnWrapper(fn)
         assert wrapper(42) == 42
         assert wrapper(42, 99) == 42
+
+
+class TestFnWrapper3:
+    def test_one_param_call(self):
+        wrapper = _FnWrapper3(lambda v: v * 2)
+        assert wrapper.params_number == 1
+        assert wrapper(None, 5) == 10
+
+    def test_two_param_call(self):
+        wrapper = _FnWrapper3(lambda p, v: p + v)
+        assert wrapper.params_number == 2
+        assert wrapper(10, 5) == 15
+
+    def test_three_param_call(self):
+        wrapper = _FnWrapper3(lambda p, v, i: p + v + i)
+        assert wrapper.params_number == 3
+        assert wrapper(10, 5, 2) == 17
+
+    def test_four_param_call(self):
+        wrapper = _FnWrapper3(lambda p, v, i, c: p + v + i + len(c))
+        assert wrapper.params_number == 4
+        assert wrapper(10, 5, 2, [1, 2, 3]) == 20
