@@ -25,12 +25,14 @@ from pyfplib.option import Nothing, Option, Some
 
 
 class _FnWrapper[T, R]:
+    # Number of parameters accepted by the wrapped callback.
     ONE = 1
     TWO = 2
     THREE = 3
     FORE = 4
 
     def __init__(self, fn: Callable[..., R]) -> None:
+        # Inspect the callback once so calls can dispatch on its arity.
         self._fn = fn
         self._sig = inspect.signature(fn)
         self._params_num = len(self._sig.parameters)
@@ -44,6 +46,7 @@ class _FnWrapper[T, R]:
         return self._params_num
 
     def __call__(self, v: T, i: int = 0, c: Sequence[T] | None = None) -> R:
+        # Forward only the arguments the wrapped callback declares.
         if self._params_num == _FnWrapper.ONE:
             return self._fn(v)
         elif self._params_num == _FnWrapper.TWO:
@@ -59,6 +62,7 @@ class _FnWrapper2[T, R](_FnWrapper[T, R]):
         self._pipeline = pipeline
 
     def __call__(self, v: T, i: int = 0, c: Sequence[T] | None = None) -> R:
+        # Run the base callback, then pass its result through each pipeline step.
         ret_value = super().__call__(v, i, c)
         for fn in self._pipeline:
             ret_value = fn(ret_value)
@@ -66,6 +70,7 @@ class _FnWrapper2[T, R](_FnWrapper[T, R]):
 
 
 class _FnWrapper3[T, R]:
+    # Like _FnWrapper, but keeps the accumulated value as the first argument.
     def __init__(self, fn: Callable[..., R]) -> None:
         self._fn = fn
         self._sig = inspect.signature(fn)
@@ -76,6 +81,7 @@ class _FnWrapper3[T, R]:
         return self._params_num
 
     def __call__(self, p: R | T | None, v: T, i: int = 0, c: Sequence[T] | None = None) -> R:
+        # Dispatch on arity, always treating `p` as the accumulated value.
         if self._params_num == _FnWrapper.ONE:
             return self._fn(v)
         elif self._params_num == _FnWrapper.TWO:
@@ -100,12 +106,16 @@ def for_each[T](function: Callable[[T, int, Sequence[T]], None], sequence: Seque
     Args:
         function: a callback to execute with elements
         sequence: provides elements to apply the callback
+
+    Returns:
+        None
     """
     if is_empty(sequence):
         return
 
     wrapper = _FnWrapper(function)
 
+    # Pass the index (and the sequence) only when the callback accepts them.
     if wrapper.params_number == _FnWrapper.ONE:
         for item in sequence:
             wrapper(item)
@@ -135,6 +145,7 @@ def any_of[T](predicate: Callable[[T, int, Sequence[T]], bool], sequence: Sequen
     Returns:
         bool: The result of the checking.
     """
+    # Stop as soon as the predicate returns a truthy value.
     return _abstract_check(predicate=_FnWrapper(predicate), sequence=sequence, init_value=False, check=lambda v: v)
 
 
@@ -159,6 +170,7 @@ def all_of[T](predicate: Callable[[T, int, Sequence[T]], bool], sequence: Sequen
     Returns:
         bool: The result of the checking.
     """
+    # Stop as soon as the predicate returns a falsy value.
     return _abstract_check(predicate=_FnWrapper(predicate), sequence=sequence, init_value=True, check=lambda v: not v)
 
 
@@ -183,6 +195,7 @@ def none_of[T](callback: Callable[[T], bool], sequence: Sequence[T]) -> bool:
     Returns:
         bool: The result of the checking.
     """
+    # Invert the callback's result via the pipeline, then stop on the first match.
     return _abstract_check(
         predicate=_FnWrapper2(callback, pipeline=(lambda v: not v,)),
         sequence=sequence,
@@ -204,13 +217,27 @@ def fold[T, R](
     sequence: Sequence[T],
     initial: R | None = None,
 ) -> Option[R]:
+    """
+    Folds the sequence into a single accumulated value.
+
+    Args:
+        function: Callback receiving the accumulator and the current item, and optionally its index.
+        sequence: Elements to fold over.
+        initial: Optional starting value for the accumulator.
+
+    Returns:
+        Option[R]: The final accumulator value, or Nothing if the sequence is empty and no initial value is given.
+    """
+    # Seed the accumulator with the optional initial value.
     ret_value = Option.from_optional(initial)
     if len(sequence) != 0:
         wrapper = _FnWrapper3(function)
+        # Two-parameter callbacks receive the accumulator and the current item.
         if wrapper.params_number == _FnWrapper.TWO:
             fn = cast(Callable[[Option[R], T], R], function)
             for item in sequence:
                 ret_value.push(fn(ret_value, item))
+        # Three-parameter callbacks additionally receive the index.
         elif wrapper.params_number == _FnWrapper.THREE:
             for idx, item in enumerate(sequence):
                 ret_value.push(wrapper(ret_value, item, idx))
@@ -228,6 +255,7 @@ def head[T](iterable: Iterable[T]) -> Option[T]:
     Return:
         Option[T]: Returns Some(item) if non-empty, otherwise Nothing().
     """
+    # Use a unique sentinel so a legitimate `None` element is not mistaken for "empty".
     iterator = iter(iterable)
     sentinel = object()
     item = next(iterator, sentinel)
@@ -250,10 +278,28 @@ def tail[T](sequence: Sequence[T]) -> Sequence[T]:
 
 
 def split_first[T](sequence: Sequence[T]) -> tuple[Option[T], Sequence[T]]:
+    """
+    Splits a sequence into its first element (if any) and the remaining tail.
+
+    Args:
+        sequence: Sequence to split.
+
+    Returns:
+        tuple[Option[T], Sequence[T]]: The first element as an Option and the remaining items.
+    """
     return (Some(sequence[0]), sequence[1:]) if sequence else (Nothing(), sequence)
 
 
 def split_last[T](sequence: Sequence[T]) -> tuple[Sequence[T], Option[T]]:
+    """
+    Splits a sequence into its initial part and its last element (if any).
+
+    Args:
+        sequence: Sequence to split.
+
+    Returns:
+        tuple[Sequence[T], Option[T]]: The initial items and the last element as an Option.
+    """
     return (sequence[:-1], Some(sequence[-1])) if sequence else (sequence, Nothing())
 
 
@@ -355,6 +401,7 @@ def find[T](callback: Callable[[T], Option[T]], sequence: Sequence[T]) -> Option
     """
     for item in sequence:
         ret_value = callback(item)
+        # Accept either a non-empty Option or any truthy value as a match.
         if isinstance(ret_value, Option) and ret_value.is_some():
             return ret_value
         elif ret_value:
@@ -374,9 +421,11 @@ def _abstract_check[T, bool](
     check: Callable[[bool], bool],
 ):
     ret_value = init_value
+    # Empty input keeps the identity value (False for any_of, True for all_of/none_of).
     if is_empty(sequence):
         return ret_value
 
+    # Stop early when `check` flags the predicate result as decisive.
     if predicate.params_number == _FnWrapper.ONE:
         for item in sequence:
             ret_value = predicate(item)
