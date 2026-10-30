@@ -34,8 +34,6 @@ Types of changes
 
 ## [0.3.1] - 2026-10-30
 
-### Added
-
 ### Fixed
 
 - Updated the return value types for `flatten` and `flatten_all`.
