@@ -16,7 +16,6 @@ keywords = [
   "result",
   "result-monad",
 ]
-authors = [{ name = "comet11x", email = "comet11x@protonmail.com" }]
 classifiers = [
   "Development Status :: 4 - Beta",
   "Programming Language :: Python",
@@ -61,13 +60,6 @@ omit = ["src/pyfplib/__about__.py"]
 pyfplib = ["src/pyfplib", "*/pyfplib/src/pyfplib"]
 tests = ["tests", "*/pyfplib/tests"]
 
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-  "^\\s*(((async )?def .*?)?[\\])]+(\\s*->.*?)?:\\s*)?\\.\\.\\.\\s*(#|$)",
-]
 
 # [project.scripts]
 # run_pyfplib = "pyfplib:main"
@@ -86,9 +78,6 @@ dependencies = ["pytest"]
 
 [[tool.hatch.envs.test.matrix]]
 python = ["3.12", "3.13", "3.14"]
-
-[tool.hatch.envs.test.scripts]
-test = "pytest {args}"
 
 [tool.hatch.envs.default]
 dependencies = [
@@ -134,3 +123,10 @@ log_level = "DEBUG"
 log_cli = true
 markers = "core"
 filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:"
+]
