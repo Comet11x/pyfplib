@@ -32,7 +32,29 @@ Types of changes
 
 ## [Unreleased]
 
-- v0.3 Documentation
+## [0.3.0] - 2026-10-30
+
+### Added
+
+- The project documentation;
+- New methods of `Option`;
+- New methods of `Result`;
+- New functions of `functools`.
+
+### Fixed
+
+- `find` function from `pyfplib.functools`
+
+### Removed
+
+- `Ether`
+- `Iterator`
+
+## [0.2.3] - 2026-02-20
+
+### Fixed
+
+- `find` function from `functools`
 
 ## [0.2.2] - 2026-02-13
 
