@@ -308,9 +308,19 @@ export default defineConfig({
         href: "https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css",
       },
     ],
+     [
+       "link",
+       {
+         rel: "icon",
+         href: "/pyfplib/favicon.ico",
+       }
+     ]
   ],
 
   themeConfig: {
+    search: {
+      provider: "local",
+    },
     socialLinks: [{ icon: "github", link: "https://github.com/comet11x/pyfplib" }],
   },
 })
