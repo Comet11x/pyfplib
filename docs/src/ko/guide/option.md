@@ -10,15 +10,16 @@ from pyfplib import Nothing, Option, Some
 
 ## 생성자
 
-### `Some(value)`
+### `Some(value: T)`
 
-값을 `Option`으로 감쌉니다. `Some`은 항상 `is_some()`입니다.
+`None`이 아닌 값을 `Option`으로 감쌉니다. `Option`은 내부적으로 `None`을 부재를 나타내는 값으로 사용하므로 `Some(None)`은 `Nothing()`처럼 동작합니다.
 
 ```python
->>> Some(42).is_some()
-True
->>> Some(42).unwrap()
-42
+from pyfplib import Some
+
+print(Some(42).is_some())    # True
+print(Some(42).unwrap())     # 42
+print(Some(None).is_none())  # True
 ```
 
 ### `Nothing()`
@@ -26,10 +27,10 @@ True
 빈 `Option`을 만듭니다. `Nothing`은 항상 `is_none()`입니다.
 
 ```python
->>> Nothing().is_none()
-True
->>> Nothing().unwrap_or(0)
-0
+from pyfplib import Nothing
+
+print(Nothing().is_none())     # True
+print(Nothing().unwrap_or(0))  # 0
 ```
 
 ---
@@ -46,30 +47,33 @@ True
 | `__hash__()` | `int` | 포함된 값의 해시를 계산합니다. |
 
 ```python
->>> bool(Some(1)), bool(Nothing())
-(True, False)
->>> Some(1) == Some(1)
-True
+from pyfplib import Nothing, Some
+
+print(bool(Some(1)), bool(Nothing()))  # (True, False)
+print(Some(1) == Some(1))              # True
 ```
 
-### `inspect(fn) -> Option[T]`
+### `inspect(fn: Callable[[T], None]) -> Option[T]`
 
 `Some`일 때 포함된 값으로 `fn`을 호출한 뒤 옵션을 그대로 반환합니다.
 
 ```python
->>> Some(2).inspect(lambda v: print(v))
-2
-Some(2)
+from pyfplib import Option, Some
+
+option: Option[int] = Some(2)
+returned = option.inspect(lambda value: print(f"inspected: {value}"))
+print(returned)  # Some(2)
 ```
 
-### `inspect_none(fn) -> Option[T]`
+### `inspect_none(fn: Callable[[], None]) -> Option[T]`
 
 `Nothing`일 때 인자 없이 `fn`을 호출한 뒤 옵션을 그대로 반환합니다.
 
 ```python
->>> Nothing().inspect_none(lambda: print("empty"))
-empty
-Nothing()
+from pyfplib import Nothing
+
+returned = Nothing().inspect_none(lambda: print("empty"))
+print(returned)  # Nothing()
 ```
 
 ---
@@ -84,159 +88,214 @@ Nothing()
 | `unwrap_or_else(fn)` | `T` | — | 값을 반환하거나 `fn()`을 호출해 대체 값을 얻습니다. |
 
 ```python
->>> Some(3).unwrap_or(0)
-3
->>> Nothing().unwrap_or(0)
-0
->>> Nothing().unwrap_or_else(lambda: 10)
-10
+from pyfplib import Nothing, Some
+
+def fallback() -> int:
+    return 10
+
+print(Some(3).unwrap_or(0))               # 3
+print(Nothing().unwrap_or(0))             # 0
+print(Some(3).unwrap_or_else(fallback))   # 3
+print(Nothing().unwrap_or_else(fallback)) # 10
+```
+
+---
+
+## 패턴 매칭
+
+`Option`은 Python의 구조적 패턴 매칭을 지원합니다. `Some(value)`로 포함된 값을 바인딩하고 `Nothing()`으로 빈 option을 일치시키며, 먼저 `is_some()`을 호출할 필요가 없습니다.
+
+```python
+from pyfplib import Nothing, Option, Some
+
+def describe(option: Option[int]) -> str:
+    match option:
+        case Some(value):
+            return f"got {value}"
+        case Nothing():
+            return "nothing"
+
+print(describe(Some(42)))   # got 42
+print(describe(Nothing()))  # nothing
 ```
 
 ---
 
 ## 변환
 
-### `map(fn) -> Option[U]`
+### `map(fn: Callable[[T], U]) -> Option[U]`
 
 포함된 값에 `fn`을 적용하고 결과를 `Some`으로 감쌉니다. `Nothing`은 `Nothing`으로 유지됩니다.
 
 ```python
->>> Some(3).map(lambda v: v * 2)
-Some(6)
->>> Nothing().map(lambda v: v * 2)
-Nothing()
+from pyfplib import Nothing, Some
+
+def double(value: int) -> int:
+    return value * 2
+
+print(Some(3).map(double))    # Some(6)
+print(Nothing().map(double))  # Nothing()
 ```
 
-### `map_or(default, fn) -> Option[U]`
+### `map_or(default: U, fn: Callable[[T], U]) -> Option[U]`
 
-`Some`이면 `fn`을 적용하고, 아니면 `default`를 사용합니다. 결과는 항상 `Some`으로 감쌉니다.
+`Some` 값에 `fn`을 적용하거나 `default`를 사용하며, 항상 `Option`(`Some`)을 반환합니다. 일반 값이 필요하면 `map_or_else`를 사용하세요.
 
 ```python
->>> Some(3).map_or(0, lambda v: v * 2)
-Some(6)
->>> Nothing().map_or(0, lambda v: v * 2)
-Some(0)
+from pyfplib import Nothing, Option, Some
+
+def double(value: int) -> int:
+    return value * 2
+
+present: Option[int] = Some(3)
+empty: Option[int] = Nothing()
+
+print(present.map_or(0, double))  # Some(6)
+print(empty.map_or(0, double))    # Some(0)
 ```
 
-### `map_or_else(default, fn) -> U`
+### `map_or_else(default: Callable[[], U], fn: Callable[[T], U]) -> U`
 
 `Some`이면 `fn`을 적용하고, 아니면 `default()`를 호출합니다.
 
 ```python
->>> Some(3).map_or_else(lambda: 0, lambda v: v * 2)
-6
->>> Nothing().map_or_else(lambda: 0, lambda v: v * 2)
-0
+from pyfplib import Nothing, Some
+
+def default() -> int:
+    return 0
+
+def double(value: int) -> int:
+    return value * 2
+
+print(Some(3).map_or_else(default, double))   # 6
+print(Nothing().map_or_else(default, double)) # 0
 ```
 
 ### `flatten() -> Option[T]`
 
-한 단계의 중첩을 평탄화합니다.
+중첩을 한 단계 줄입니다. 중첩되지 않은 옵션은 그대로 반환됩니다.
 
 ```python
->>> Some(Some(1)).flatten()
-Some(1)
->>> Some(1).flatten()
-Some(1)
+from pyfplib import Some
+
+print(Some(Some(1)).flatten())  # Some(1)
+print(Some(1).flatten())        # Some(1)
 ```
 
 ### `flatten_all() -> Option[T]`
 
-모든 단계의 중첩을 평탄화합니다.
+가장 안쪽의 옵션이 아닌 값에 도달할 때까지 모든 중첩 수준을 줄입니다.
 
 ```python
->>> Some(Some(Some(1))).flatten_all()
-Some(1)
+from pyfplib import Some
+
+print(Some(Some(Some(1))).flatten_all())  # Some(1)
 ```
 
 ---
 
 ## Result로 변환
 
-### `ok_or(err) -> Result[T, E]`
+### `ok_or(err: E) -> Result[T, E]`
 
 `Option`을 `Result`로 변환하며, 비어 있으면 `err`를 사용합니다.
 
 ```python
->>> Some(1).ok_or("missing")
-Ok(1)
->>> Nothing().ok_or("missing")
-Err('missing')
+from pyfplib import Nothing, Some
+
+print(Some(1).ok_or("missing"))   # Ok(1)
+print(Nothing().ok_or("missing")) # Err('missing')
 ```
 
-### `ok_or_else(fn) -> Result[T, E]`
+### `ok_or_else(fn: Callable[[], E]) -> Result[T, E]`
 
 `ok_or`와 같지만 비어 있을 때 `fn()`을 호출해 오류를 만듭니다.
 
 ```python
->>> Nothing().ok_or_else(lambda: "missing")
-Err('missing')
+from pyfplib import Nothing
+
+def missing_error() -> str:
+    return "missing"
+
+print(Nothing().ok_or_else(missing_error))  # Err('missing')
 ```
 
-### `from_optional(value) -> Option[T]` *(정적)*
+### `from_optional(value: T | None) -> Option[T]` *(정적)*
 
-`None`일 수 있는 값으로 `Option`을 만듭니다.
+`None`일 수 있는 값으로 `Option`을 만듭니다. `None`은 `Nothing`이 되고, 다른 값은 `Some`이 됩니다.
 
 ```python
->>> Option.from_optional(None)
-Nothing()
->>> Option.from_optional(5)
-Some(5)
+from pyfplib import Option
+
+value: int | None = None
+print(Option.from_optional(value))  # Nothing()
+print(Option.from_optional(5))      # Some(5)
 ```
 
 ---
 
 ## 결합
 
-### `and_then(fn) -> Option[U]`
+### `and_then(fn: Callable[[T], Option[U]]) -> Option[U]`
 
 `Some`일 때만 `fn`을 실행하고, 아니면 `Nothing`을 반환합니다.
 
 ```python
->>> Some(2).and_then(lambda v: Some(v + 1))
-Some(3)
->>> Nothing().and_then(lambda v: Some(v + 1))
-Nothing()
+from pyfplib import Nothing, Option, Some
+
+def increment(value: int) -> Option[int]:
+    return Some(value + 1)
+
+print(Some(2).and_then(increment))   # Some(3)
+print(Nothing().and_then(increment)) # Nothing()
 ```
 
-### `or_else(fn) -> Option[T]`
+### `or_else(fn: Callable[[], Option[T]]) -> Option[T]`
 
 `Nothing`일 때만 `fn`을 실행하고, 아니면 원래 옵션을 반환합니다.
 
 ```python
->>> Nothing().or_else(lambda: Some(9))
-Some(9)
->>> Some(1).or_else(lambda: Some(9))
-Some(1)
+from pyfplib import Nothing, Option, Some
+
+def recover() -> Option[int]:
+    return Some(9)
+
+print(Nothing().or_else(recover))  # Some(9)
+print(Some(1).or_else(recover))    # Some(1)
 ```
 
-### `xor(other) -> Option[T]`
+### `xor(other: Option[T]) -> Option[T]`
 
 두 옵션 중 정확히 하나만 `Some`일 때 값을 반환합니다.
 
 ```python
->>> Some(1).xor(Nothing())
-Some(1)
->>> Some(1).xor(Some(2))
-Nothing()
+from pyfplib import Nothing, Some
+
+print(Some(1).xor(Nothing()))  # Some(1)
+print(Some(1).xor(Some(2)))    # Nothing()
 ```
 
-### `zip(other) -> Option[tuple[T, U]]`
+### `zip(other: Option[U]) -> Option[tuple[T, U]]`
 
 두 옵션이 모두 `Some`일 때 값을 쌍으로 묶습니다.
 
 ```python
->>> Some(1).zip(Some("a"))
-Some((1, 'a'))
+from pyfplib import Some
+
+print(Some(1).zip(Some("a")))  # Some((1, 'a'))
 ```
 
-### `zip_with(other, ctr) -> Option[R]`
+### `zip_with(other: Option[U], ctr: Callable[[T, U], R]) -> Option[R]`
 
 두 옵션이 모두 `Some`일 때 `ctr`로 두 값을 결합합니다.
 
 ```python
->>> Some(1).zip_with(Some(2), lambda a, b: a + b)
-Some(3)
+from pyfplib import Some
+
+def add(left: int, right: int) -> int:
+    return left + right
+
+print(Some(1).zip_with(Some(2), add))  # Some(3)
 ```
 
 ---
@@ -253,28 +312,29 @@ Some(3)
 | `a \| fn` | `a.or_else(fn)` | `a`가 `Nothing`이면 `fn()` 호출. |
 
 ```python
->>> Some(1) & Some(2)
-Some(2)
->>> Nothing() & Some(2)
-Nothing()
->>> Nothing() | Some(2)
-Some(2)
+from pyfplib import Nothing, Some
+
+print(Some(1) & Some(2))    # Some(2)
+print(Nothing() & Some(2))  # Nothing()
+print(Nothing() | Some(2))  # Some(2)
 ```
 
 ---
 
 ## 변경
 
-### `push(value) -> T`
+### `push(value: T) -> T`
 
-`value`를 저장하고 이전에 보관하던 값(옵션이 비어 있었다면 `value`)을 반환합니다.
+옵션을 제자리에서 변경합니다. `value`를 저장하고 이전에 보관하던 값을 반환하며, 옵션이 비어 있었다면 `value` 자체를 반환합니다.
 
 ```python
->>> opt = Some(1)
->>> opt.push(2)
-1
->>> opt
-Some(2)
+from pyfplib import Option, Some
+
+option: Option[int] = Some(1)
+previous = option.push(2)
+
+print(previous)  # 1
+print(option)    # Some(2)
 ```
 
 ---
@@ -291,5 +351,10 @@ from pyfplib.errors import ExpectedError, UnwrapError
 try:
     Nothing().unwrap()
 except UnwrapError as exc:
-    print(exc)
+    print(exc)  # called `Option.unwrap()` on a `Nothing` value
+
+try:
+    Nothing().expect("value is required")
+except ExpectedError as exc:
+    print(exc)  # value is required
 ```
