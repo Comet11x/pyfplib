@@ -32,6 +32,20 @@ Types of changes
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-10-30
+
+### Added
+
+### Fixed
+
+- Updated the return value types for `flatten` and `flatten_all`.
+- Updated examples.
+
+### Removed
+
+- `Ether`
+- `Iterator`
+
 ## [0.3.0] - 2026-10-30
 
 ### Added
@@ -44,11 +58,6 @@ Types of changes
 ### Fixed
 
 - `find` function from `pyfplib.functools`
-
-### Removed
-
-- `Ether`
-- `Iterator`
 
 ## [0.2.3] - 2026-02-20
 
