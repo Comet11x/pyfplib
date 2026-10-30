@@ -3,7 +3,7 @@
 """This module provides Option[T] and Result[T, E]"""
 
 from collections.abc import Callable
-from typing import TypeVar, cast, overload
+from typing import TypeVar, cast
 
 from pyfplib.errors import ExpectedError, UnwrapError
 
@@ -284,13 +284,13 @@ class Result[T, E]:
             res_ok: Result[T, U] = Ok(cast(T, self.__value))
             return res_ok
 
-    @overload
-    def flatten(self: "Result[Result[T, E], E]") -> "Result[T, E]": ...
+    # @overload
+    # def flatten(self: "Result[Result[T, E], E]") -> "Result[T, E]": ...
 
-    @overload
-    def flatten(self: "Result[T, E]") -> "Result[T, E]": ...
+    # @overload
+    # def flatten(self: "Result[T, E]") -> "Result[T, E]": ...
 
-    def flatten(self):
+    def flatten(self) -> "Result":
         """
         Collapses one level of nesting.
 
@@ -300,11 +300,11 @@ class Result[T, E]:
         # Collapse exactly one level of nesting; non-nested results are returned as-is.
         return self.__value if isinstance(self.__value, Result) else self
 
-    @overload
-    def flatten_all(self: "Result[Result[T, E], E]") -> "Result[T, E]": ...
+    # @overload
+    # def flatten_all(self: "Result[Result[T, E], E]") -> "Result[T, E]": ...
 
-    @overload
-    def flatten_all(self: "Result[T, E]") -> "Result[T, E]": ...
+    # @overload
+    # def flatten_all(self: "Result[T, E]") -> "Result[T, E]": ...
 
     def flatten_all(self) -> "Result":
         """
@@ -616,13 +616,13 @@ class Option[T]:
         """
         return default() if self.is_none() else fn(cast(T, self.__value))
 
-    @overload
-    def flatten(self: "Option[Option[T]]") -> "Option[T]": ...
+    # @overload
+    # def flatten(self: "Option[Option[T]]") -> "Option[T]": ...
 
-    @overload
-    def flatten(self: "Option[T]") -> "Option[T]": ...
+    # @overload
+    # def flatten(self: "Option[T]") -> "Option[T]": ...
 
-    def flatten(self):
+    def flatten(self) -> "Option":
         """
         Collapses one level of nesting.
 
@@ -631,13 +631,13 @@ class Option[T]:
         """
         return self.__value if isinstance(self.__value, Option) else self
 
-    @overload
-    def flatten_all(self: "Option[Option[T]]") -> "Option[T]": ...
+    # @overload
+    # def flatten_all(self: "Option[Option[T]]") -> "Option[T]": ...
 
-    @overload
-    def flatten_all(self: "Option[T]") -> "Option[T]": ...
+    # @overload
+    # def flatten_all(self: "Option[T]") -> "Option[T]": ...
 
-    def flatten_all(self) -> "Option[T]":
+    def flatten_all(self) -> "Option":
         """
         Collapses every level of nesting.
 
