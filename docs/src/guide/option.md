@@ -10,26 +10,27 @@ from pyfplib import Nothing, Option, Some
 
 ## Constructors
 
-### `Some(value)`
+### `Some(value: T)`
 
-Wraps a value in an `Option`. A `Some` always `is_some()`.
+Wraps a non-`None` value in an `Option`. Because `Option` uses `None` internally to represent absence, `Some(None)` behaves like `Nothing()`.
 
 ```python
->>> Some(42).is_some()
-True
->>> Some(42).unwrap()
-42
+from pyfplib import Some
+
+print(Some(42).is_some())    # True
+print(Some(42).unwrap())     # 42
+print(Some(None).is_none())  # True
 ```
 
 ### `Nothing()`
 
-Creates an empty `Option`. A `Nothing` always `is_none()`.
+Creates an empty `Option`. A `Nothing` always reports `is_none()`.
 
 ```python
->>> Nothing().is_none()
-True
->>> Nothing().unwrap_or(0)
-0
+from pyfplib import Nothing
+
+print(Nothing().is_none())     # True
+print(Nothing().unwrap_or(0))  # 0
 ```
 
 ---
@@ -46,30 +47,33 @@ True
 | `__hash__()` | `int` | Hashes the contained value. |
 
 ```python
->>> bool(Some(1)), bool(Nothing())
-(True, False)
->>> Some(1) == Some(1)
-True
+from pyfplib import Nothing, Some
+
+print(bool(Some(1)), bool(Nothing()))  # (True, False)
+print(Some(1) == Some(1))              # True
 ```
 
-### `inspect(fn) -> Option[T]`
+### `inspect(fn: Callable[[T], None]) -> Option[T]`
 
-Calls `fn` with the contained value when `Some`, then returns the option unchanged.
+Calls `fn` with the contained value when `Some`, then returns the same option for chaining.
 
 ```python
->>> Some(2).inspect(lambda v: print(v))
-2
-Some(2)
+from pyfplib import Option, Some
+
+option: Option[int] = Some(2)
+returned = option.inspect(lambda value: print(f"inspected: {value}"))
+print(returned)  # Some(2)
 ```
 
-### `inspect_none(fn) -> Option[T]`
+### `inspect_none(fn: Callable[[], None]) -> Option[T]`
 
-Calls `fn` with no arguments when `Nothing`, then returns the option unchanged.
+Calls `fn` with no arguments when `Nothing`, then returns the same option for chaining.
 
 ```python
->>> Nothing().inspect_none(lambda: print("empty"))
-empty
-Nothing()
+from pyfplib import Nothing
+
+returned = Nothing().inspect_none(lambda: print("empty"))
+print(returned)  # Nothing()
 ```
 
 ---
@@ -84,159 +88,214 @@ Nothing()
 | `unwrap_or_else(fn)` | `T` | — | Returns the value or calls `fn()` for a fallback. |
 
 ```python
->>> Some(3).unwrap_or(0)
-3
->>> Nothing().unwrap_or(0)
-0
->>> Nothing().unwrap_or_else(lambda: 10)
-10
+from pyfplib import Nothing, Some
+
+def fallback() -> int:
+    return 10
+
+print(Some(3).unwrap_or(0))               # 3
+print(Nothing().unwrap_or(0))             # 0
+print(Some(3).unwrap_or_else(fallback))   # 3
+print(Nothing().unwrap_or_else(fallback)) # 10
+```
+
+---
+
+## Pattern Matching
+
+`Option` supports Python's structural pattern matching. Use `Some(value)` to bind the contained value and `Nothing()` to match an empty option, without calling `is_some()` first.
+
+```python
+from pyfplib import Nothing, Option, Some
+
+def describe(option: Option[int]) -> str:
+    match option:
+        case Some(value):
+            return f"got {value}"
+        case Nothing():
+            return "nothing"
+
+print(describe(Some(42)))   # got 42
+print(describe(Nothing()))  # nothing
 ```
 
 ---
 
 ## Transformation
 
-### `map(fn) -> Option[U]`
+### `map(fn: Callable[[T], U]) -> Option[U]`
 
-Applies `fn` to the contained value, wrapping the result in `Some`. `Nothing` stays `Nothing`.
+Applies `fn` to the contained value and wraps the result in `Some`. `Nothing` stays `Nothing`.
 
 ```python
->>> Some(3).map(lambda v: v * 2)
-Some(6)
->>> Nothing().map(lambda v: v * 2)
-Nothing()
+from pyfplib import Nothing, Some
+
+def double(value: int) -> int:
+    return value * 2
+
+print(Some(3).map(double))    # Some(6)
+print(Nothing().map(double))  # Nothing()
 ```
 
-### `map_or(default, fn) -> Option[U]`
+### `map_or(default: U, fn: Callable[[T], U]) -> Option[U]`
 
-Applies `fn` when `Some`, otherwise uses `default`. The result is always wrapped in `Some`.
+Applies `fn` to a `Some` value or uses `default`, and always returns an `Option` (`Some`). Use `map_or_else` when you need the plain value.
 
 ```python
->>> Some(3).map_or(0, lambda v: v * 2)
-Some(6)
->>> Nothing().map_or(0, lambda v: v * 2)
-Some(0)
+from pyfplib import Nothing, Option, Some
+
+def double(value: int) -> int:
+    return value * 2
+
+present: Option[int] = Some(3)
+empty: Option[int] = Nothing()
+
+print(present.map_or(0, double))  # Some(6)
+print(empty.map_or(0, double))    # Some(0)
 ```
 
-### `map_or_else(default, fn) -> U`
+### `map_or_else(default: Callable[[], U], fn: Callable[[T], U]) -> U`
 
-Applies `fn` when `Some`, otherwise calls `default()`.
+Applies `fn` to a `Some` value, or calls `default()` when empty, returning the plain value.
 
 ```python
->>> Some(3).map_or_else(lambda: 0, lambda v: v * 2)
-6
->>> Nothing().map_or_else(lambda: 0, lambda v: v * 2)
-0
+from pyfplib import Nothing, Some
+
+def default() -> int:
+    return 0
+
+def double(value: int) -> int:
+    return value * 2
+
+print(Some(3).map_or_else(default, double))   # 6
+print(Nothing().map_or_else(default, double)) # 0
 ```
 
 ### `flatten() -> Option[T]`
 
-Collapses one level of nesting.
+Collapses one level of nesting. A non-nested option is returned unchanged.
 
 ```python
->>> Some(Some(1)).flatten()
-Some(1)
->>> Some(1).flatten()
-Some(1)
+from pyfplib import Some
+
+print(Some(Some(1)).flatten())  # Some(1)
+print(Some(1).flatten())        # Some(1)
 ```
 
 ### `flatten_all() -> Option[T]`
 
-Collapses every level of nesting.
+Collapses every level of nesting until the innermost non-option value is reached.
 
 ```python
->>> Some(Some(Some(1))).flatten_all()
-Some(1)
+from pyfplib import Some
+
+print(Some(Some(Some(1))).flatten_all())  # Some(1)
 ```
 
 ---
 
 ## Conversion
 
-### `ok_or(err) -> Result[T, E]`
+### `ok_or(err: E) -> Result[T, E]`
 
 Converts an `Option` into a `Result`, using `err` when empty.
 
 ```python
->>> Some(1).ok_or("missing")
-Ok(1)
->>> Nothing().ok_or("missing")
-Err('missing')
+from pyfplib import Nothing, Some
+
+print(Some(1).ok_or("missing"))   # Ok(1)
+print(Nothing().ok_or("missing")) # Err('missing')
 ```
 
-### `ok_or_else(fn) -> Result[T, E]`
+### `ok_or_else(fn: Callable[[], E]) -> Result[T, E]`
 
 Like `ok_or`, but calls `fn()` to produce the error when empty.
 
 ```python
->>> Nothing().ok_or_else(lambda: "missing")
-Err('missing')
+from pyfplib import Nothing
+
+def missing_error() -> str:
+    return "missing"
+
+print(Nothing().ok_or_else(missing_error))  # Err('missing')
 ```
 
-### `from_optional(value) -> Option[T]` *(static)*
+### `from_optional(value: T | None) -> Option[T]` *(static)*
 
-Builds an `Option` from a possibly-`None` value.
+Builds an `Option` from a possibly-`None` value: `None` becomes `Nothing`, and any other value becomes `Some`.
 
 ```python
->>> Option.from_optional(None)
-Nothing()
->>> Option.from_optional(5)
-Some(5)
+from pyfplib import Option
+
+value: int | None = None
+print(Option.from_optional(value))  # Nothing()
+print(Option.from_optional(5))      # Some(5)
 ```
 
 ---
 
 ## Combining
 
-### `and_then(fn) -> Option[U]`
+### `and_then(fn: Callable[[T], Option[U]]) -> Option[U]`
 
 Runs `fn` only when `Some`; otherwise returns `Nothing`.
 
 ```python
->>> Some(2).and_then(lambda v: Some(v + 1))
-Some(3)
->>> Nothing().and_then(lambda v: Some(v + 1))
-Nothing()
+from pyfplib import Nothing, Option, Some
+
+def increment(value: int) -> Option[int]:
+    return Some(value + 1)
+
+print(Some(2).and_then(increment))   # Some(3)
+print(Nothing().and_then(increment)) # Nothing()
 ```
 
-### `or_else(fn) -> Option[T]`
+### `or_else(fn: Callable[[], Option[T]]) -> Option[T]`
 
 Runs `fn` only when `Nothing`; otherwise returns the original option.
 
 ```python
->>> Nothing().or_else(lambda: Some(9))
-Some(9)
->>> Some(1).or_else(lambda: Some(9))
-Some(1)
+from pyfplib import Nothing, Option, Some
+
+def recover() -> Option[int]:
+    return Some(9)
+
+print(Nothing().or_else(recover))  # Some(9)
+print(Some(1).or_else(recover))    # Some(1)
 ```
 
-### `xor(other) -> Option[T]`
+### `xor(other: Option[T]) -> Option[T]`
 
 Returns a value only when exactly one of the two options is `Some`.
 
 ```python
->>> Some(1).xor(Nothing())
-Some(1)
->>> Some(1).xor(Some(2))
-Nothing()
+from pyfplib import Nothing, Some
+
+print(Some(1).xor(Nothing()))  # Some(1)
+print(Some(1).xor(Some(2)))    # Nothing()
 ```
 
-### `zip(other) -> Option[tuple[T, U]]`
+### `zip(other: Option[U]) -> Option[tuple[T, U]]`
 
 Pairs the values when both options are `Some`.
 
 ```python
->>> Some(1).zip(Some("a"))
-Some((1, 'a'))
+from pyfplib import Some
+
+print(Some(1).zip(Some("a")))  # Some((1, 'a'))
 ```
 
-### `zip_with(other, ctr) -> Option[R]`
+### `zip_with(other: Option[U], ctr: Callable[[T, U], R]) -> Option[R]`
 
 Combines both values with `ctr` when both are `Some`.
 
 ```python
->>> Some(1).zip_with(Some(2), lambda a, b: a + b)
-Some(3)
+from pyfplib import Some
+
+def add(left: int, right: int) -> int:
+    return left + right
+
+print(Some(1).zip_with(Some(2), add))  # Some(3)
 ```
 
 ---
@@ -253,28 +312,29 @@ Some(3)
 | `a \| fn` | `a.or_else(fn)` | Calls `fn()` when `a` is `Nothing`. |
 
 ```python
->>> Some(1) & Some(2)
-Some(2)
->>> Nothing() & Some(2)
-Nothing()
->>> Nothing() | Some(2)
-Some(2)
+from pyfplib import Nothing, Some
+
+print(Some(1) & Some(2))    # Some(2)
+print(Nothing() & Some(2))  # Nothing()
+print(Nothing() | Some(2))  # Some(2)
 ```
 
 ---
 
 ## Mutation
 
-### `push(value) -> T`
+### `push(value: T) -> T`
 
-Stores `value` and returns the previously held value (or `value` when the option was empty).
+Mutates the option in place: stores `value` and returns the previously held value, or `value` itself when the option was empty.
 
 ```python
->>> opt = Some(1)
->>> opt.push(2)
-1
->>> opt
-Some(2)
+from pyfplib import Option, Some
+
+option: Option[int] = Some(1)
+previous = option.push(2)
+
+print(previous)  # 1
+print(option)    # Some(2)
 ```
 
 ---
@@ -291,5 +351,10 @@ from pyfplib.errors import ExpectedError, UnwrapError
 try:
     Nothing().unwrap()
 except UnwrapError as exc:
-    print(exc)
+    print(exc)  # called `Option.unwrap()` on a `Nothing` value
+
+try:
+    Nothing().expect("value is required")
+except ExpectedError as exc:
+    print(exc)  # value is required
 ```

@@ -1,6 +1,6 @@
 # API de Funções
 
-O módulo `pyfplib.functools` fornece pequenos auxiliares combináveis para sequências. A maioria também é reexportada pelo pacote `pyfplib`; `split_first` e `split_last` devem ser importados de `pyfplib.functools`.
+O módulo `pyfplib.functools` fornece pequenos auxiliares combináveis para sequências. A maioria também é reexportada do pacote de nível superior `pyfplib`; `first`, `split_first` e `split_last` devem ser importados de `pyfplib.functools`.
 
 ```python
 from pyfplib import (
@@ -17,7 +17,7 @@ from pyfplib import (
     none_of,
     tail,
 )
-from pyfplib.functools import split_first, split_last
+from pyfplib.functools import first, split_first, split_last
 ```
 
 Muitos auxiliares aceitam callbacks com um, dois ou três parâmetros. Os parâmetros extras recebem o índice do elemento e a sequência completa.
@@ -26,198 +26,235 @@ Muitos auxiliares aceitam callbacks com um, dois ou três parâmetros. Os parâm
 
 ## Iteração
 
-### `for_each(function, sequence) -> None`
+### `for_each(function: Callable[..., None], sequence: Sequence[T]) -> None`
 
-Aplica `function` a cada elemento por seus efeitos colaterais.
+Aplica `function` a cada elemento para seus efeitos colaterais. O callback pode aceitar `(value)`, `(value, index)` ou `(value, index, sequence)`.
 
 ```python
->>> for_each(lambda v: print(v), [1, 2])
-1
-2
->>> for_each(lambda v, i: print(i, v), ["a", "b"])
-0 a
-1 b
+from pyfplib import for_each
+
+def print_item(value: int) -> None:
+    print(value)
+
+def print_indexed(value: str, index: int) -> None:
+    print(index, value)
+
+for_each(print_item, [1, 2])        # prints 1, then 2
+for_each(print_indexed, ["a", "b"]) # prints "0 a", then "1 b"
 ```
 
 ---
 
 ## Predicados
 
-### `any_of(predicate, sequence) -> bool`
+### `any_of(predicate: Callable[..., bool], sequence: Sequence[T]) -> bool`
 
-Retorna `True` quando pelo menos um elemento satisfaz `predicate`. Retorna `False` para uma sequência vazia.
+Retorna `True` quando pelo menos um elemento satisfaz `predicate`; retorna `False` para uma sequência vazia. O callback pode aceitar `(value)`, `(value, index)` ou `(value, index, sequence)`.
 
 ```python
->>> any_of(lambda v: v > 2, [1, 2, 3])
-True
->>> any_of(lambda v: v > 10, [1, 2, 3])
-False
+from pyfplib import any_of
+
+def greater_than_two(value: int) -> bool:
+    return value > 2
+
+numbers: list[int] = [1, 2, 3]
+
+print(any_of(greater_than_two, numbers))         # True
+print(any_of(lambda value: value > 10, numbers)) # False
+print(any_of(lambda value: True, []))            # False
 ```
 
-### `all_of(predicate, sequence) -> bool`
+### `all_of(predicate: Callable[..., bool], sequence: Sequence[T]) -> bool`
 
-Retorna `True` quando todos os elementos satisfazem `predicate`. Retorna `True` para uma sequência vazia.
+Retorna `True` quando cada elemento satisfaz `predicate`; retorna `True` para uma sequência vazia. O callback pode aceitar `(value)`, `(value, index)` ou `(value, index, sequence)`.
 
 ```python
->>> all_of(lambda v: v > 0, [1, 2, 3])
-True
->>> all_of(lambda v: v > 0, [1, -1])
-False
+from pyfplib import all_of
+
+def is_positive(value: int) -> bool:
+    return value > 0
+
+print(all_of(is_positive, [1, 2, 3]))  # True
+print(all_of(is_positive, [1, -1, 2])) # False
+print(all_of(lambda value: False, [])) # True
 ```
 
-### `none_of(predicate, sequence) -> bool`
+### `none_of(predicate: Callable[..., bool], sequence: Sequence[T]) -> bool`
 
-Retorna `True` quando nenhum elemento satisfaz `predicate`.
+Retorna `True` quando nenhum elemento satisfaz `predicate`; retorna `True` para uma sequência vazia. O callback pode aceitar `(value)`, `(value, index)` ou `(value, index, sequence)`.
 
 ```python
->>> none_of(lambda v: v > 10, [1, 2, 3])
-True
->>> none_of(lambda v: v > 2, [1, 2, 3])
-False
+from pyfplib import none_of
+
+def is_negative(value: int) -> bool:
+    return value < 0
+
+print(none_of(is_negative, [1, 2, 3]))              # True
+print(none_of(lambda value: value > 2, [1, 2, 3]))  # False
+print(none_of(lambda value: True, []))              # True
 ```
 
 ---
 
 ## Dobra
 
-### `fold(function, sequence, initial=None) -> Option[R]`
+### `fold(function: Callable[[Option[R], T], R] | Callable[[Option[R], T, int], R], sequence: Sequence[T], initial: R | None = None) -> Option[R]`
 
-Reduz uma sequência a um único valor. O callback recebe o acumulador e o elemento atual e, opcionalmente, o índice do elemento.
+Reduz uma sequência a `Option[R]`. O callback recebe o acumulador como `Option[R]` e o elemento atual, opcionalmente com o índice do elemento. Sem um valor inicial, o acumulador começa como `Nothing`; dobrar uma sequência vazia sem valor inicial retorna `Nothing()`.
 
 ```python
->>> fold(lambda acc, v: acc.unwrap_or(0) + v, [1, 2, 3], 0)
-Some(6)
->>> fold(lambda acc, v, i: acc.unwrap_or(0) + v + i, [1, 2, 3])
-Some(9)
+from pyfplib import Option, fold
+
+def add(accumulator: Option[int], value: int) -> int:
+    return accumulator.unwrap_or(0) + value
+
+def add_with_index(accumulator: Option[int], value: int, index: int) -> int:
+    return accumulator.unwrap_or(0) + value + index
+
+numbers: list[int] = [1, 2, 3]
+
+print(fold(add, numbers, 0))         # Some(6)
+print(fold(add_with_index, numbers)) # Some(9)
 ```
 
-Sem um valor inicial, o acumulador começa como `Nothing`; dobrar uma sequência vazia retorna `Nothing()`.
-
 ```python
->>> fold(lambda acc, v: acc.unwrap_or(0) + v, [])
-Nothing()
+from pyfplib import Option, fold
+
+def add(accumulator: Option[int], value: int) -> int:
+    return accumulator.unwrap_or(0) + value
+
+print(fold(add, []))     # Nothing()
+print(fold(add, [], 10)) # Some(10)
 ```
 
 ---
 
 ## Acesso a elementos
 
-### `head(iterable) -> Option[T]`
+### `head(iterable: Iterable[T]) -> Option[T]`
 
 Retorna o primeiro elemento, ou `Nothing` quando o iterável está vazio. Aceita qualquer iterável.
 
 ```python
->>> head([10, 20])
-Some(10)
->>> head([])
-Nothing()
+from pyfplib import head
+
+print(head([10, 20])) # Some(10)
+print(head([]))       # Nothing()
+print(head("abc"))    # Some('a')
 ```
 
-### `first(iterable) -> Option[T]`
+### `first(iterable: Iterable[T]) -> Option[T]`
 
-Auxiliar que retorna o primeiro elemento de qualquer iterável.
+Retorna o primeiro elemento de qualquer iterável. Comporta-se como `head`.
 
 ```python
->>> first("abc")
-Some('a')
+from pyfplib.functools import first
+
+print(first("abc")) # Some('a')
+print(first([]))    # Nothing()
 ```
 
-### `last(sequence) -> Option[T]`
+### `last(sequence: Sequence[T]) -> Option[T]`
 
 Retorna o último elemento, ou `Nothing` quando a sequência está vazia.
 
 ```python
->>> last([10, 20])
-Some(20)
->>> last([])
-Nothing()
+from pyfplib import last
+
+print(last([10, 20])) # Some(20)
+print(last([]))       # Nothing()
 ```
 
-### `tail(sequence) -> Sequence[T]`
+### `tail(sequence: Sequence[T]) -> Sequence[T]`
 
 Retorna a sequência sem seu primeiro elemento. Sequências vazias são retornadas inalteradas.
 
 ```python
->>> tail([1, 2, 3])
-[2, 3]
->>> tail([])
-[]
+from pyfplib import tail
+
+print(tail([1, 2, 3])) # [2, 3]
+print(tail([]))        # []
 ```
 
-### `split_first(sequence) -> tuple[Option[T], Sequence[T]]`
+### `split_first(sequence: Sequence[T]) -> tuple[Option[T], Sequence[T]]`
 
-Divide uma sequência em seu primeiro elemento e a cauda restante.
+Divide uma sequência em seu primeiro elemento e na cauda restante. Uma sequência vazia retorna `(Nothing(), sequence)`.
 
 ```python
->>> split_first([1, 2, 3])
-(Some(1), [2, 3])
->>> split_first([])
-(Nothing(), [])
+from pyfplib.functools import split_first
+
+print(split_first([1, 2, 3])) # (Some(1), [2, 3])
+print(split_first([]))        # (Nothing(), [])
 ```
 
-### `split_last(sequence) -> tuple[Sequence[T], Option[T]]`
+### `split_last(sequence: Sequence[T]) -> tuple[Sequence[T], Option[T]]`
 
-Divide uma sequência em sua parte inicial e seu último elemento.
+Divide uma sequência em sua parte inicial e seu último elemento. Uma sequência vazia retorna `(sequence, Nothing())`.
 
 ```python
->>> split_last([1, 2, 3])
-([1, 2], Some(3))
->>> split_last([])
-([], Nothing())
+from pyfplib.functools import split_last
+
+print(split_last([1, 2, 3])) # ([1, 2], Some(3))
+print(split_last([]))        # ([], Nothing())
 ```
 
 ---
 
 ## Busca
 
-### `index(predicate, sequence) -> Option[int]`
+### `index(predicate: Callable[..., bool | Option[Any]] | T, sequence: Sequence[T]) -> Option[int]`
 
-Retorna o índice do primeiro elemento correspondente. `predicate` pode ser um callable ou um valor para comparação.
+Retorna o índice do primeiro elemento correspondente. `predicate` pode ser um valor ou um callable; callables podem aceitar `(value)`, `(value, index)` ou `(value, index, sequence)`. Retorna `Nothing()` quando nenhum elemento corresponde.
 
 ```python
->>> index(3, [1, 2, 3, 4])
-Some(2)
->>> index(lambda v: v > 2, [1, 2, 3, 4])
-Some(2)
->>> index(10, [1, 2, 3])
-Nothing()
+from pyfplib import index
+
+numbers: list[int] = [1, 2, 3, 4]
+
+print(index(3, numbers))                        # Some(2)
+print(index(lambda value: value > 2, numbers))  # Some(2)
+print(index(10, numbers))                       # Nothing()
 ```
 
-### `find(callback, sequence) -> Option[T]`
+### `find(callback: Callable[[T], Option[T] | bool], sequence: Sequence[T]) -> Option[T]`
 
-Retorna o primeiro elemento para o qual `callback` retorna um `Option` não vazio ou qualquer valor verdadeiro.
+Retorna o primeiro elemento para o qual `callback` retorna um `Option` não vazio ou qualquer valor verdadeiro. Retorna `Nothing()` quando nenhum elemento corresponde.
 
 ```python
->>> find(lambda v: Some(v) if v % 2 == 0 else Nothing(), [1, 2, 3])
-Some(2)
->>> find(lambda v: v > 2, [1, 2, 3])
-Some(3)
->>> find(lambda v: v > 10, [1, 2, 3])
-Nothing()
+from pyfplib import Nothing, Option, Some, find
+
+numbers: list[int] = [1, 2, 3]
+
+def is_even(value: int) -> Option[int]:
+    return Some(value) if value % 2 == 0 else Nothing()
+
+print(find(is_even, numbers))                   # Some(2)
+print(find(lambda value: value > 2, numbers))   # Some(3)
+print(find(lambda value: value > 10, numbers))  # Nothing()
 ```
 
 ---
 
 ## Verificações de tamanho
 
-### `is_empty(iterable) -> bool`
+### `is_empty(iterable: Sized) -> bool`
 
 Retorna `True` quando `len(iterable) == 0`.
 
 ```python
->>> is_empty([])
-True
->>> is_empty([1])
-False
+from pyfplib import is_empty
+
+print(is_empty([]))  # True
+print(is_empty([1])) # False
 ```
 
-### `is_not_empty(value) -> bool`
+### `is_not_empty(value: Sized) -> bool`
 
 Retorna `True` quando `len(value) != 0`.
 
 ```python
->>> is_not_empty([1])
-True
->>> is_not_empty([])
-False
+from pyfplib import is_not_empty
+
+print(is_not_empty([1])) # True
+print(is_not_empty([]))  # False
 ```
