@@ -18,7 +18,7 @@ jobs:
 
       - run: pip install pytest pytest-cov
       - name: Run tests and create coverage report
-        run: pytest --cov=your_package --cov-report=term --cov-report=html
+        run: pytest --cov=pyfplib --cov-report=term --cov-report=html
 
       - name: Save HTML coverage report
         if: always()
