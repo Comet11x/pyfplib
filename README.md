@@ -3,7 +3,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/pyfplib.svg)](https://pypi.org/project/pyfplib)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyfplib.svg)](https://pypi.org/project/pyfplib)
 [![Tests](https://github.com/comet11x/pyfplib/actions/workflows/test.yml/badge.svg)](https://github.com/comet11x/pyfplib/actions/workflows/test.yml)
-[![Coverage Status](https://coveralls.io/repos/github/Comet11x/pyfplib/badge.svg?branch=dev)](https://coveralls.io/github/Comet11x/pyfplib?branch=dev)
+[![Coverage Status](https://coveralls.io/repos/github/Comet11x/pyfplib/badge.svg?branch=dev)](https://coveralls.io/github/Comet11x/pyfplib?branch=main)
 
 -----
 
